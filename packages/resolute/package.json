@@ -1,0 +1,63 @@
+{
+  "name": "@blinkorb/resolute",
+  "version": "0.0.0",
+  "description": "Bleeding edge React static/server side rendering framework",
+  "main": "src/index.ts",
+  "bin": {
+    "resolute": "./src/cli/index.ts"
+  },
+  "type": "module",
+  "scripts": {
+    "build-static": "ts-node-esm --files ./src/cli/index.ts build static",
+    "typecheck": "tsc --noEmit",
+    "format-check": "prettier --check '**/*'",
+    "format": "prettier --write '**/*'",
+    "lint": "eslint '**/*.{ts,tsx,js,jsx}'",
+    "tests": "jest --coverage --runInBand",
+    "test": "npm run typecheck && npm run format-check && npm run lint && npm run tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blinkorb/resolute.git"
+  },
+  "keywords": [
+    "resolute",
+    "react",
+    "static",
+    "site",
+    "server",
+    "side",
+    "rendered",
+    "rendering",
+    "framework"
+  ],
+  "author": "BlinkOrb",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/blinkorb/resolute/issues"
+  },
+  "homepage": "https://github.com/blinkorb/resolute#readme",
+  "dependencies": {
+    "@types/express": "^4.17.17",
+    "@types/react": "^18.2.18",
+    "@types/react-dom": "^18.2.7",
+    "express": "^4.18.2",
+    "glob": "^10.3.3",
+    "jargs": "^1.0.0-alpha.0",
+    "mkdirp": "^3.0.1",
+    "query-string": "^8.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "rimraf": "^5.0.1"
+  },
+  "peerDependencies": {
+    "@types/react": "^18.2.18",
+    "@types/react-dom": "^18.2.7",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.2.2"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1"
+  }
+}

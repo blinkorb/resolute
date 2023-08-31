@@ -1,0 +1,13 @@
+/node_modules/*
+/coverage/*
+/build/*
+/dist/*
+/packages/*/node_modules/*
+/packages/*/coverage/*
+/packages/*/static/*
+/packages/*/build/*
+/packages/*/dist/*
+/.vscode/*
+
+.DS_Store
+npm-debug.log*

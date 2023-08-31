@@ -1,0 +1,45 @@
+{
+  "name": "@blinkorb/resolute-example",
+  "version": "0.0.0",
+  "description": "Resolute example project",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build-static": "resolute build static",
+    "serve-static": "resolute serve static",
+    "typecheck": "tsc --noEmit",
+    "format-check": "prettier --check '**/*'",
+    "format": "prettier --write '**/*'",
+    "lint": "eslint '**/*.{ts,tsx,js,jsx}'",
+    "tests": "jest --coverage --runInBand",
+    "test": "npm run typecheck && npm run format-check && npm run lint && npm run tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blinkorb/resolute.git"
+  },
+  "keywords": [
+    "resolute",
+    "example",
+    "react",
+    "static",
+    "site"
+  ],
+  "author": "BlinkOrb",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/blinkorb/resolute/issues"
+  },
+  "homepage": "https://github.com/blinkorb/resolute#readme",
+  "dependencies": {
+    "@blinkorb/resolute": "^0.0.0",
+    "@types/node": "^18.17.4",
+    "@types/react": "^18.2.18",
+    "@types/react-dom": "^18.2.7",
+    "@types/react-helmet": "^6.1.6",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-helmet": "^6.1.0",
+    "typescript": "^5.2.2"
+  }
+}

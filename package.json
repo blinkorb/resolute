@@ -1,0 +1,52 @@
+{
+  "name": "@blinkorb/resolute-monorepo",
+  "version": "0.0.0",
+  "description": "Bleeding edge React static/server side rendering framework",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "format-check": "prettier --check 'packages/**/*'",
+    "format": "prettier --write 'packages/**/*'",
+    "lint": "eslint 'packages/**/*.{ts,tsx,js,jsx}'",
+    "tests": "jest --coverage --runInBand",
+    "test": "npm run format-check && npm run typecheck && npm run lint && npm run tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blinkorb/resolute.git"
+  },
+  "keywords": [
+    "resolute",
+    "react",
+    "static",
+    "site",
+    "server",
+    "side",
+    "rendered",
+    "rendering",
+    "framework"
+  ],
+  "author": "BlinkOrb",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/blinkorb/resolute/issues"
+  },
+  "homepage": "https://github.com/blinkorb/resolute#readme",
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/jest": "^29.5.4",
+    "@typescript-eslint/eslint-plugin": "^6.5.0",
+    "@typescript-eslint/parser": "^6.5.0",
+    "eslint": "^8.46.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-react": "^7.33.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-simple-import-sort": "^10.0.0",
+    "jest": "^29.6.4",
+    "prettier": "^3.0.1",
+    "ts-jest": "^29.1.1"
+  }
+}
