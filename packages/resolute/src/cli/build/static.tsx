@@ -81,33 +81,14 @@ const isComponentLike = (value: unknown): value is ComponentLike =>
 const MaybeHead = ({
   clientModule,
   client,
-  nodeModules,
+  children,
 }: {
   clientModule: UnknownObject;
   client: string;
-  nodeModules: readonly IDependency[];
+  children: ReactNode | readonly ReactNode[];
 }) => {
-  const importMap = (
-    <script type="importmap">
-      {JSON.stringify({
-        imports: nodeModules
-          .filter((dep) => !MATCHES_LOCAL.test(dep.module))
-          .reduce(
-            (acc, dep) => ({
-              ...acc,
-              [dep.module]: dep.resolved.replace(
-                /^.*node_modules\//,
-                '/node_modules/'
-              ),
-            }),
-            {}
-          ),
-      })}
-    </script>
-  );
-
   if (!('title' in clientModule)) {
-    return <Helmet>{importMap}</Helmet>;
+    return <Helmet>{children}</Helmet>;
   }
 
   const { title } = clientModule;
@@ -119,7 +100,7 @@ const MaybeHead = ({
   return (
     <Helmet>
       <title>{title}</title>
-      {importMap}
+      {children}
     </Helmet>
   );
 };
@@ -279,11 +260,31 @@ const buildStatic = async () => {
 
       const staticMarkup = renderToStaticMarkup(
         <>
-          <MaybeHead
-            clientModule={clientModule}
-            client={client}
-            nodeModules={nodeModules}
-          />
+          <MaybeHead clientModule={clientModule} client={client}>
+            <script type="importmap">
+              {JSON.stringify({
+                imports: nodeModules
+                  .filter((dep) => !MATCHES_LOCAL.test(dep.module))
+                  .reduce(
+                    (acc, dep) => ({
+                      ...acc,
+                      [dep.module]: dep.resolved.replace(
+                        /^.*node_modules\//,
+                        '/node_modules/'
+                      ),
+                    }),
+                    {}
+                  ),
+              })}
+            </script>
+            <script type="application/json">
+              {JSON.stringify({
+                client: client
+                  .replace(/\.tsx?/, '.js')
+                  .replace(/^(\.?\/)?/, '/'),
+              })}
+            </script>
+          </MaybeHead>
           {element}
         </>
       );
