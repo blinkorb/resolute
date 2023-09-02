@@ -23,6 +23,7 @@ import type { EmptyObject } from '../../types.js';
 const root = 'src/';
 const staticDir = 'static/';
 const publicFiles = 'public/**/*';
+const MATCHES_LOCAL = /^[./]/;
 const cwd = process.cwd();
 
 type UnknownObject = Record<string, unknown>;
@@ -80,12 +81,33 @@ const isComponentLike = (value: unknown): value is ComponentLike =>
 const MaybeHead = ({
   clientModule,
   client,
+  nodeModules,
 }: {
   clientModule: UnknownObject;
   client: string;
+  nodeModules: readonly IDependency[];
 }) => {
+  const importMap = (
+    <script type="importmap">
+      {JSON.stringify({
+        imports: nodeModules
+          .filter((dep) => !MATCHES_LOCAL.test(dep.module))
+          .reduce(
+            (acc, dep) => ({
+              ...acc,
+              [dep.module]: dep.resolved.replace(
+                /^.*node_modules\//,
+                '/node_modules/'
+              ),
+            }),
+            {}
+          ),
+      })}
+    </script>
+  );
+
   if (!('title' in clientModule)) {
-    return <Helmet />;
+    return <Helmet>{importMap}</Helmet>;
   }
 
   const { title } = clientModule;
@@ -97,6 +119,7 @@ const MaybeHead = ({
   return (
     <Helmet>
       <title>{title}</title>
+      {importMap}
     </Helmet>
   );
 };
@@ -256,7 +279,11 @@ const buildStatic = async () => {
 
       const staticMarkup = renderToStaticMarkup(
         <>
-          <MaybeHead clientModule={clientModule} client={client} />
+          <MaybeHead
+            clientModule={clientModule}
+            client={client}
+            nodeModules={nodeModules}
+          />
           {element}
         </>
       );
