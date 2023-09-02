@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import url from 'node:url';
 
 import cpy from 'cpy';
 import { cruise, IDependency } from 'dependency-cruiser';
@@ -20,6 +21,8 @@ import { PORT } from '../../constants.js';
 import type { RequestMethod } from '../../index.js';
 import type { EmptyObject } from '../../types.js';
 
+// const __filename = url.fileURLToPath(import.meta.url);
+const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 const root = 'src/';
 const staticDir = 'static/';
 const publicFiles = 'public/**/*';
@@ -192,7 +195,11 @@ const buildStatic = async () => {
   };
 
   const dependencies = await cruise(
-    clientFiles.map((pathname) => path.resolve(root, pathname)),
+    clientFiles
+      .map((pathname) => path.resolve(root, pathname))
+      .concat(
+        path.relative(cwd, path.resolve(__dirname, '../../resolute-client.tsx'))
+      ),
     {
       baseDir: cwd,
     }
