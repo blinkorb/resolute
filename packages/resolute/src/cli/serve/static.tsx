@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import cpy from 'cpy';
 import express from 'express';
 import { glob } from 'glob';
 import { mkdirpSync } from 'mkdirp';
@@ -20,6 +21,7 @@ import type { EmptyObject } from '../../types.js';
 
 const root = 'src/';
 const staticDir = 'static/';
+const publicFiles = 'public/**/*';
 const cwd = process.cwd();
 
 type UnknownObject = Record<string, unknown>;
@@ -186,6 +188,7 @@ const serveStatic = async () => {
 
   rimrafSync(path.resolve(cwd, staticDir));
   mkdirpSync(path.resolve(cwd, staticDir));
+  cpy(publicFiles, staticDir, { cwd });
 
   app.use(express.static(path.resolve(cwd, staticDir)));
 

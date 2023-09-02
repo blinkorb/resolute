@@ -41,6 +41,7 @@
     "@types/express": "^4.17.17",
     "@types/react": "^18.2.18",
     "@types/react-dom": "^18.2.7",
+    "cpy": "^10.1.0",
     "express": "^4.18.2",
     "glob": "^10.3.3",
     "jargs": "^1.0.0-alpha.1",
