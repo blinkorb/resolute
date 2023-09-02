@@ -12,7 +12,7 @@ import React, {
   ReactElement,
   ReactNode,
 } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup, renderToString } from 'react-dom/server';
 import { Helmet } from 'react-helmet';
 import { rimrafSync } from 'rimraf';
 
@@ -258,36 +258,34 @@ const buildStatic = async () => {
         );
       }
 
-      const staticMarkup = renderToStaticMarkup(
-        <>
-          <MaybeHead clientModule={clientModule} client={client}>
-            <script type="importmap">
-              {JSON.stringify({
-                imports: nodeModules
-                  .filter((dep) => !MATCHES_LOCAL.test(dep.module))
-                  .reduce(
-                    (acc, dep) => ({
-                      ...acc,
-                      [dep.module]: dep.resolved.replace(
-                        /^.*node_modules\//,
-                        '/node_modules/'
-                      ),
-                    }),
-                    {}
-                  ),
-              })}
-            </script>
-            <script type="application/json">
-              {JSON.stringify({
-                client: client
-                  .replace(/\.tsx?/, '.js')
-                  .replace(/^(\.?\/)?/, '/'),
-              })}
-            </script>
-          </MaybeHead>
-          {element}
-        </>
+      const staticHead = renderToStaticMarkup(
+        <MaybeHead clientModule={clientModule} client={client}>
+          <script type="importmap">
+            {JSON.stringify({
+              imports: nodeModules
+                .filter((dep) => !MATCHES_LOCAL.test(dep.module))
+                .reduce(
+                  (acc, dep) => ({
+                    ...acc,
+                    [dep.module]: dep.resolved.replace(
+                      /^.*node_modules\//,
+                      '/node_modules/'
+                    ),
+                  }),
+                  {}
+                ),
+            })}
+          </script>
+          <script id="resolute-client-json" type="application/json">
+            {JSON.stringify({
+              client: client.replace(/\.tsx?/, '.js').replace(/^(\.?\/)?/, '/'),
+            })}
+          </script>
+        </MaybeHead>
       );
+
+      const appMarkup = renderToString(element);
+
       const helmet = Helmet.renderStatic();
       const htmlAttributes = helmet.htmlAttributes.toString();
       const bodyAttributes = helmet.bodyAttributes.toString();
@@ -304,9 +302,10 @@ const buildStatic = async () => {
     ]
       .filter((str) => str)
       .join('\n    ')}
+    ${staticHead}
   </head>
   <body${bodyAttributes ? ` ${bodyAttributes}` : ''}>
-    ${staticMarkup}
+    ${appMarkup}
   </body>
 </html>
 `;
