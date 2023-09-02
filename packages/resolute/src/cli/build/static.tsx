@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import cpy from 'cpy';
+import { cruise, IDependency } from 'dependency-cruiser';
 import express from 'express';
 import { glob } from 'glob';
 import { mkdirpSync } from 'mkdirp';
@@ -186,9 +187,44 @@ const buildStatic = async () => {
     return props;
   };
 
+  const dependencies = await cruise(
+    clientFiles.map((pathname) => path.resolve(root, pathname)),
+    {
+      baseDir: cwd,
+    }
+  );
+
+  const nodeModules = dependencies.output.modules
+    .reduce<readonly IDependency[]>((acc, mod) => {
+      return [
+        ...acc,
+        ...mod.dependencies.filter((dep) =>
+          dep.resolved.includes('node_modules')
+        ),
+      ];
+    }, [])
+    .filter(
+      (dep, index, context) =>
+        context.findIndex(
+          (otherDep) =>
+            otherDep.module === dep.module && otherDep.resolved === dep.resolved
+        ) === index
+    );
+
   rimrafSync(path.resolve(cwd, staticDir));
   mkdirpSync(path.resolve(cwd, staticDir));
-  cpy(publicFiles, staticDir, { cwd });
+  cpy(publicFiles, path.resolve(cwd, staticDir));
+  nodeModules.forEach((dep) => {
+    cpy(
+      dep.resolved,
+      path.resolve(
+        staticDir,
+        'node_modules',
+        path.dirname(dep.resolved.replace(/^.*node_modules\//, ''))
+      ),
+      { cwd }
+    );
+  });
 
   const expressServer = app.listen(PORT, async () => {
     const clientPromises = clientFiles.map(async (client) => {

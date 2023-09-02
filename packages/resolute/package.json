@@ -42,6 +42,7 @@
     "@types/react": "^18.2.18",
     "@types/react-dom": "^18.2.7",
     "cpy": "^10.1.0",
+    "dependency-cruiser": "^13.1.5",
     "express": "^4.18.2",
     "glob": "^10.3.3",
     "jargs": "^1.0.0-alpha.1",
