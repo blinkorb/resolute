@@ -335,7 +335,7 @@ const buildStatic = async () => {
           /(import\s+[\w]+\s+from\s*["']\.\/cjs\/react\.(production|development)\.min\.js["'];)/,
           `$1export * from"./cjs/react.$2.min.js";`
         ),
-        'utf8'
+        { encoding: 'utf8' }
       );
     })
   );
@@ -460,7 +460,7 @@ const buildStatic = async () => {
 
       mkdirpSync(ourDir);
 
-      fs.writeFileSync(outFile, html, 'utf8');
+      fs.writeFileSync(outFile, html, { encoding: 'utf8' });
     });
 
     await Promise.all(clientPromises);
