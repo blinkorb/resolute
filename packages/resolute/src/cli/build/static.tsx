@@ -93,7 +93,7 @@ const MaybeHead = ({
 }: {
   clientModule: UnknownObject;
   client: string;
-  children: ReactNode | readonly ReactNode[];
+  children?: ReactNode | readonly ReactNode[];
 }) => {
   if (!('title' in clientModule)) {
     return <Helmet>{children}</Helmet>;
@@ -385,33 +385,7 @@ const buildStatic = async () => {
       }
 
       const staticHead = renderToStaticMarkup(
-        <MaybeHead clientModule={clientModule} client={client}>
-          <script type="importmap">
-            {JSON.stringify({
-              imports: nodeModules
-                .filter((dep) => !MATCHES_LOCAL.test(dep.module))
-                .reduce(
-                  (acc, dep) => ({
-                    ...acc,
-                    [dep.module]: dep.resolved.replace(
-                      /^.*node_modules\//,
-                      '/node-modules/'
-                    ),
-                  }),
-                  {
-                    '@blinkorb/resolute':
-                      '/node-modules/@blinkorb/resolute/index.js',
-                  }
-                ),
-            })}
-          </script>
-          <script id="resolute-client-json" type="application/json">
-            {JSON.stringify({
-              client: client.replace(/\.tsx?/, '.js').replace(/^(\.?\/)?/, '/'),
-            })}
-          </script>
-          <script defer type="module" src="/resolute-client.js"></script>
-        </MaybeHead>
+        <MaybeHead clientModule={clientModule} client={client} />
       );
 
       const appMarkup = renderToString(element);
@@ -433,6 +407,30 @@ const buildStatic = async () => {
       .filter((str) => str)
       .join('\n    ')}
     ${staticHead}
+    <script type="importmap">
+      ${JSON.stringify({
+        imports: nodeModules
+          .filter((dep) => !MATCHES_LOCAL.test(dep.module))
+          .reduce(
+            (acc, dep) => ({
+              ...acc,
+              [dep.module]: dep.resolved.replace(
+                /^.*node_modules\//,
+                '/node-modules/'
+              ),
+            }),
+            {
+              '@blinkorb/resolute': '/node-modules/@blinkorb/resolute/index.js',
+            }
+          ),
+      })}
+    </script>
+    <script id="resolute-client-json" type="application/json">
+      ${JSON.stringify({
+        client: client.replace(/\.tsx?/, '.js').replace(/^(\.?\/)?/, '/'),
+      })}
+    </script>
+    <script defer type="module" src="/resolute-client.js"></script>
   </head>
   <body${bodyAttributes ? ` ${bodyAttributes}` : ''}>${appMarkup}</body>
 </html>
