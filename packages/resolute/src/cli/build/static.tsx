@@ -290,8 +290,7 @@ const buildStatic = async () => {
       const outPath = path.resolve(
         cwd,
         staticDir,
-        'node_modules',
-        dep.resolved.replace(/^.*node_modules\//, '')
+        dep.resolved.replace(/^.*node_modules\//, 'node-modules/')
       );
 
       mkdirpSync(path.dirname(outPath));
@@ -354,7 +353,7 @@ const buildStatic = async () => {
   compile(
     [path.resolve(resoluteClientRoot, 'index.ts')],
     resoluteClientRoot,
-    path.resolve(cwd, staticDir, 'node_modules', '@blinkorb/resolute')
+    path.resolve(cwd, staticDir, 'node-modules', '@blinkorb/resolute')
   );
 
   const expressServer = app.listen(PORT, async () => {
@@ -396,12 +395,12 @@ const buildStatic = async () => {
                     ...acc,
                     [dep.module]: dep.resolved.replace(
                       /^.*node_modules\//,
-                      '/node_modules/'
+                      '/node-modules/'
                     ),
                   }),
                   {
                     '@blinkorb/resolute':
-                      '/node_modules/@blinkorb/resolute/index.js',
+                      '/node-modules/@blinkorb/resolute/index.js',
                   }
                 ),
             })}
