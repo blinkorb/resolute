@@ -1,8 +1,9 @@
 import fs from 'node:fs';
-// import { createRequire } from 'node:module';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import url from 'node:url';
 
+import { transformSync } from '@babel/core';
 import cpy from 'cpy';
 import { cruise, IDependency } from 'dependency-cruiser';
 import express from 'express';
@@ -17,7 +18,6 @@ import React, {
 import { renderToStaticMarkup, renderToString } from 'react-dom/server';
 import { Helmet } from 'react-helmet';
 import { rimrafSync } from 'rimraf';
-import { minify } from 'terser';
 import ts from 'typescript';
 
 import { PORT } from '../../constants.js';
@@ -26,7 +26,7 @@ import type { EmptyObject } from '../../types.js';
 
 // const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-// const require = createRequire(import.meta.url);
+const require = createRequire(import.meta.url);
 
 const root = 'src/';
 const staticDir = 'static/';
@@ -135,7 +135,11 @@ const assertProps: AssertUnknownObject = (props, pathname) => {
   }
 };
 
-const compile = (fileNames: string[], rootDir: string): void => {
+const compile = (
+  fileNames: string[],
+  rootDir: string,
+  outDir: string
+): void => {
   console.log(fileNames);
 
   const program = ts.createProgram(fileNames, {
@@ -144,7 +148,7 @@ const compile = (fileNames: string[], rootDir: string): void => {
     declaration: false,
     sourceMap: true,
     jsx: ts.JsxEmit.React,
-    outDir: path.resolve(cwd, staticDir),
+    outDir,
     rootDir,
   });
   const emitResult = program.emit();
@@ -300,50 +304,57 @@ const buildStatic = async () => {
       // const sourceMapUrl =
       //   (sourceMapMatch && sourceMapMatch[1]) ||
       //   `${path.basename(dep.resolved)}.map`;
-      const terserResult = await minify(
-        content,
-        /* eslint-disable camelcase */
-        {
-          // sourceMap:
-          //   typeof sourceMapUrl === 'string' &&
-          //   fs.existsSync(
-          //     path.resolve(path.dirname(dep.resolved), sourceMapUrl)
-          //   )
-          //     ? {
-          //         content: fs.readFileSync(
-          //           path.resolve(path.dirname(dep.resolved), sourceMapUrl)
-          //         ),
-          //         url: sourceMapUrl,
-          //       }
-          //     : true,
-          compress: {
-            global_defs: {
-              'process.env.NODE_ENV': 'production',
-            },
-            dead_code: true,
-          },
-          mangle: false,
-        }
-        /* eslint-enable camelcase */
-      );
-      const { code: terserCode } = terserResult;
+      process.env.NODE_ENV = 'production';
+      const babelResult = transformSync(content, {
+        plugins: [
+          [
+            require.resolve(
+              'babel-plugin-transform-inline-environment-variables'
+            ),
+            { include: ['NODE_ENV'] },
+          ],
+          require.resolve('babel-plugin-minify-dead-code-elimination'),
+          require.resolve('babel-plugin-transform-commonjs'),
+        ],
+        minified: true,
+      });
 
-      if (!terserCode) {
-        throw new Error(`No terser code for "${dep.resolved}"`);
+      if (!babelResult) {
+        throw new Error(`No babel result for "${dep.resolved}"`);
       }
 
-      fs.writeFileSync(outPath, terserCode, 'utf8');
+      const { code } = babelResult;
+
+      if (!code) {
+        throw new Error(`No babel code for "${dep.resolved}"`);
+      }
+
+      fs.writeFileSync(
+        outPath,
+        code.replace(
+          /(import\s+[\w]+\s+from\s*["']\.\/cjs\/react\.(production|development)\.min\.js["'];)/,
+          `$1export * from"./cjs/react.$2.min.js";`
+        ),
+        'utf8'
+      );
     })
   );
   const clientRoot = path.resolve(cwd, root);
   compile(
     clientFiles.map((pathname) => path.resolve(clientRoot, pathname)),
-    clientRoot
+    clientRoot,
+    path.resolve(cwd, staticDir)
   );
   const resoluteClientRoot = path.resolve(__dirname, '../../');
   compile(
     [path.resolve(resoluteClientRoot, 'resolute-client.tsx')],
-    resoluteClientRoot
+    resoluteClientRoot,
+    path.resolve(cwd, staticDir)
+  );
+  compile(
+    [path.resolve(resoluteClientRoot, 'index.ts')],
+    resoluteClientRoot,
+    path.resolve(cwd, staticDir, 'node_modules', '@blinkorb/resolute')
   );
 
   const expressServer = app.listen(PORT, async () => {
@@ -388,7 +399,10 @@ const buildStatic = async () => {
                       '/node_modules/'
                     ),
                   }),
-                  {}
+                  {
+                    '@blinkorb/resolute':
+                      '/node_modules/@blinkorb/resolute/index.js',
+                  }
                 ),
             })}
           </script>
@@ -421,9 +435,7 @@ const buildStatic = async () => {
       .join('\n    ')}
     ${staticHead}
   </head>
-  <body${bodyAttributes ? ` ${bodyAttributes}` : ''}>
-    ${appMarkup}
-  </body>
+  <body${bodyAttributes ? ` ${bodyAttributes}` : ''}>${appMarkup}</body>
 </html>
 `;
 
