@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+// import { createRequire } from 'node:module';
 import path from 'node:path';
 import url from 'node:url';
 
@@ -16,6 +17,8 @@ import React, {
 import { renderToStaticMarkup, renderToString } from 'react-dom/server';
 import { Helmet } from 'react-helmet';
 import { rimrafSync } from 'rimraf';
+import { minify } from 'terser';
+import ts from 'typescript';
 
 import { PORT } from '../../constants.js';
 import type { RequestMethod } from '../../index.js';
@@ -23,6 +26,8 @@ import type { EmptyObject } from '../../types.js';
 
 // const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
+// const require = createRequire(import.meta.url);
+
 const root = 'src/';
 const staticDir = 'static/';
 const publicFiles = 'public/**/*';
@@ -130,6 +135,57 @@ const assertProps: AssertUnknownObject = (props, pathname) => {
   }
 };
 
+const compile = (fileNames: string[], rootDir: string): void => {
+  console.log(fileNames);
+
+  const program = ts.createProgram(fileNames, {
+    target: ts.ScriptTarget.ESNext,
+    module: ts.ModuleKind.NodeNext,
+    declaration: false,
+    sourceMap: true,
+    jsx: ts.JsxEmit.React,
+    outDir: path.resolve(cwd, staticDir),
+    rootDir,
+  });
+  const emitResult = program.emit();
+
+  emitResult.emittedFiles?.forEach((emittedFile) => {
+    console.log(`Created ${emittedFile}`);
+  });
+
+  const allDiagnostics = ts
+    .getPreEmitDiagnostics(program)
+    .concat(emitResult.diagnostics);
+
+  allDiagnostics.forEach((diagnostic) => {
+    if (diagnostic.file) {
+      const { line, character } = ts.getLineAndCharacterOfPosition(
+        diagnostic.file,
+        diagnostic.start!
+      );
+      const message = ts.flattenDiagnosticMessageText(
+        diagnostic.messageText,
+        '\n'
+      );
+      // eslint-disable-next-line no-console
+      console.log(
+        `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`
+      );
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(
+        ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')
+      );
+    }
+  });
+
+  const exitCode = emitResult.emitSkipped ? 1 : 0;
+  // eslint-disable-next-line no-console
+  console.log(
+    `Compiled typescript from "${rootDir}" with exit code "${exitCode}".`
+  );
+};
+
 const buildStatic = async () => {
   const serverFiles = glob
     .sync(`${root}**/*.server.{ts,tsx,js,jsx,mjs,cjs}`, { cwd })
@@ -224,18 +280,71 @@ const buildStatic = async () => {
 
   rimrafSync(path.resolve(cwd, staticDir));
   mkdirpSync(path.resolve(cwd, staticDir));
-  cpy(publicFiles, path.resolve(cwd, staticDir));
-  nodeModules.forEach((dep) => {
-    cpy(
-      dep.resolved,
-      path.resolve(
+  await cpy(publicFiles, path.resolve(cwd, staticDir));
+  await Promise.all(
+    nodeModules.map(async (dep) => {
+      const outPath = path.resolve(
+        cwd,
         staticDir,
         'node_modules',
-        path.dirname(dep.resolved.replace(/^.*node_modules\//, ''))
-      ),
-      { cwd }
-    );
-  });
+        dep.resolved.replace(/^.*node_modules\//, '')
+      );
+
+      mkdirpSync(path.dirname(outPath));
+      const content = fs.readFileSync(dep.resolved, {
+        encoding: 'utf8',
+      });
+      // const sourceMapMatch = /\/\/#\ssourceMappingURL=([^\s]+)[\s\n]*$/.exec(
+      //   content
+      // );
+      // const sourceMapUrl =
+      //   (sourceMapMatch && sourceMapMatch[1]) ||
+      //   `${path.basename(dep.resolved)}.map`;
+      const terserResult = await minify(
+        content,
+        /* eslint-disable camelcase */
+        {
+          // sourceMap:
+          //   typeof sourceMapUrl === 'string' &&
+          //   fs.existsSync(
+          //     path.resolve(path.dirname(dep.resolved), sourceMapUrl)
+          //   )
+          //     ? {
+          //         content: fs.readFileSync(
+          //           path.resolve(path.dirname(dep.resolved), sourceMapUrl)
+          //         ),
+          //         url: sourceMapUrl,
+          //       }
+          //     : true,
+          compress: {
+            global_defs: {
+              'process.env.NODE_ENV': 'production',
+            },
+            dead_code: true,
+          },
+          mangle: false,
+        }
+        /* eslint-enable camelcase */
+      );
+      const { code: terserCode } = terserResult;
+
+      if (!terserCode) {
+        throw new Error(`No terser code for "${dep.resolved}"`);
+      }
+
+      fs.writeFileSync(outPath, terserCode, 'utf8');
+    })
+  );
+  const clientRoot = path.resolve(cwd, root);
+  compile(
+    clientFiles.map((pathname) => path.resolve(clientRoot, pathname)),
+    clientRoot
+  );
+  const resoluteClientRoot = path.resolve(__dirname, '../../');
+  compile(
+    [path.resolve(resoluteClientRoot, 'resolute-client.tsx')],
+    resoluteClientRoot
+  );
 
   const expressServer = app.listen(PORT, async () => {
     const clientPromises = clientFiles.map(async (client) => {
@@ -288,6 +397,7 @@ const buildStatic = async () => {
               client: client.replace(/\.tsx?/, '.js').replace(/^(\.?\/)?/, '/'),
             })}
           </script>
+          <script defer type="module" src="/resolute-client.js"></script>
         </MaybeHead>
       );
 
