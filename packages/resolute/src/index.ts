@@ -1,4 +1,5 @@
 import queryString from 'query-string';
+import { useEffect, useState } from 'react';
 
 import { API_URL, METHODS } from './constants.js';
 import type { AnyObject, EmptyObject } from './types.js';
@@ -48,3 +49,15 @@ export const createAPI =
       >;
     });
   };
+
+export const useIsClientRender = () => {
+  const [state, setState] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setState(true);
+    }
+  }, []);
+
+  return state;
+};
