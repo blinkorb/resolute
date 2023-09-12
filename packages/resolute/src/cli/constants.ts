@@ -14,3 +14,4 @@ export const OUT_PATHNAME = path.resolve(CWD, OUT_DIR);
 export const PUBLIC_FILES_GLOB = 'public/**/*';
 
 export const MATCHES_LOCAL = /^[./]/;
+export const MATCHES_TRAILING_SLASH = /\/?$/;
