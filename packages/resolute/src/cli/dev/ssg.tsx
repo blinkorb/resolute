@@ -5,76 +5,23 @@ import cpy from 'cpy';
 import express from 'express';
 import { glob } from 'glob';
 import { mkdirpSync } from 'mkdirp';
-import React, {
-  ComponentType,
-  isValidElement,
-  ReactElement,
-  ReactNode,
-} from 'react';
+import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Helmet } from 'react-helmet';
 import { rimrafSync } from 'rimraf';
 
 import { PORT } from '../../constants.js';
 import type { RequestMethod } from '../../index.js';
-import type { EmptyObject } from '../../types.js';
-
-const root = 'src/';
-const staticDir = 'static/';
-const publicFiles = 'public/**/*';
-const cwd = process.cwd();
-
-type UnknownObject = Record<string, unknown>;
-
-type AssertUnknownObject = (
-  module: unknown,
-  pathname: string
-) => asserts module is UnknownObject;
-
-// const resolvePromises = async (
-//   promises: readonly ((() => Promise<any>) | Promise<any>)[]
-// ) => {
-//   const copy = [...promises];
-
-//   while (copy.length) {
-//     const current = copy.shift();
-
-//     if (current instanceof Promise) {
-//       await current;
-//     } else if (typeof current === 'function') {
-//       await current();
-//     }
-//   }
-// };
-
-type AsyncComponent<P = EmptyObject> = (props: P) => Promise<ReactElement>;
-type ComponentLike = ComponentType | AsyncComponent;
-
-const isAsyncFunction = (value: ComponentLike): value is AsyncComponent => {
-  return value.constructor.name === 'AsyncFunction';
-};
-
-const AsyncComponentWrapper = ({
-  children,
-}: {
-  children: ReactNode | readonly ReactNode[];
-}) => <>{children}</>;
-
-const createElementAsync = async (
-  Comp: ComponentLike,
-  props: UnknownObject
-) => {
-  if (isAsyncFunction(Comp)) {
-    const element = await Comp(props);
-
-    return <AsyncComponentWrapper {...props}>{element}</AsyncComponentWrapper>;
-  }
-
-  return <Comp {...props} />;
-};
-
-const isComponentLike = (value: unknown): value is ComponentLike =>
-  typeof value === 'function';
+import { UnknownObject } from '../../types.js';
+import { getModuleElement } from '../../utils/component.js';
+import { assertModule, getModule } from '../../utils/module.js';
+import {
+  CWD,
+  OUT_PATHNAME,
+  PUBLIC_FILES_GLOB,
+  SRC_DIR,
+  SRC_PATHNAME,
+} from '../constants.js';
 
 const MaybeHead = ({
   clientModule,
@@ -100,37 +47,15 @@ const MaybeHead = ({
   );
 };
 
-const assertModule: AssertUnknownObject = (module, pathname) => {
-  if (!module) {
-    throw new Error(
-      `Module at "${pathname}" was not what we expected: ${module}`
-    );
-  }
-
-  if (typeof module !== 'object' || Array.isArray(module)) {
-    throw new Error(`Module at "${pathname}" must be an object`);
-  }
-};
-
-const assertProps: AssertUnknownObject = (props, pathname) => {
-  if (!props) {
-    throw new Error(`Props from "${pathname}" was no truthy: ${props}`);
-  }
-
-  if (typeof props !== 'object' || Array.isArray(props)) {
-    throw new Error(`Props from "${pathname}" must be an object`);
-  }
-};
-
 const serveStatic = async () => {
   const serverFiles = glob
-    .sync(`${root}**/*.server.{ts,tsx,js,jsx,mjs,cjs}`, { cwd })
-    .map((pathname) => path.relative(root, pathname))
+    .sync(`${SRC_DIR}**/*.server.{ts,tsx,js,jsx,mjs,cjs}`, { cwd: CWD })
+    .map((pathname) => path.relative(SRC_DIR, pathname))
     // FIXME: remove these filters for slugs
     .filter((pathname) => !pathname.includes('${'));
   const clientFiles = glob
-    .sync(`${root}**/*.client.{ts,tsx,js,jsx,mjs,cjs}`, { cwd })
-    .map((pathname) => path.relative(root, pathname))
+    .sync(`${SRC_DIR}**/*.client.{ts,tsx,js,jsx,mjs,cjs}`, { cwd: CWD })
+    .map((pathname) => path.relative(SRC_DIR, pathname))
     // FIXME: remove these filters for slugs
     .filter((pathname) => !pathname.includes('${'));
   // const layoutFiles = glob
@@ -142,7 +67,7 @@ const serveStatic = async () => {
   const app = express();
 
   const serverPromises = serverFiles.map(async (server) => {
-    const serverModule: unknown = await import(path.join(cwd, root, server));
+    const serverModule: unknown = await import(path.join(SRC_PATHNAME, server));
 
     assertModule(serverModule, server);
 
@@ -168,29 +93,11 @@ const serveStatic = async () => {
 
   await Promise.all(serverPromises);
 
-  const getProps = async (clientModule: UnknownObject, pathname: string) => {
-    if (!('getProps' in clientModule)) {
-      return {};
-    }
+  rimrafSync(OUT_PATHNAME);
+  mkdirpSync(OUT_PATHNAME);
+  cpy(PUBLIC_FILES_GLOB, OUT_PATHNAME);
 
-    if (typeof clientModule.getProps !== 'function') {
-      throw new Error(
-        `Exported "getProps" must be a function in "${clientModule}"`
-      );
-    }
-
-    const props = await clientModule.getProps();
-
-    assertProps(props, pathname);
-
-    return props;
-  };
-
-  rimrafSync(path.resolve(cwd, staticDir));
-  mkdirpSync(path.resolve(cwd, staticDir));
-  cpy(publicFiles, staticDir, { cwd });
-
-  app.use(express.static(path.resolve(cwd, staticDir)));
+  app.use(express.static(OUT_PATHNAME));
 
   const expressServer = app.listen(PORT, async () => {
     // eslint-disable-next-line no-console
@@ -201,31 +108,9 @@ const serveStatic = async () => {
     });
 
     const clientPromises = clientFiles.map(async (client) => {
-      const clientModule: unknown = await import(path.join(cwd, root, client));
-
-      assertModule(clientModule, client);
-
-      const props = await getProps(clientModule, client);
-
-      if (!('default' in clientModule)) {
-        throw new Error(`Must have a default export in "${client}"`);
-      }
-
-      const { default: Comp } = clientModule;
-
-      if (!isComponentLike(Comp)) {
-        throw new Error(
-          `Default export must be a React component in "${client}"`
-        );
-      }
-
-      const element: unknown = await createElementAsync(Comp, props);
-
-      if (!isValidElement(element)) {
-        throw new Error(
-          `Default export must return a valid React element in "${client}"`
-        );
-      }
+      const pathname = path.join(SRC_PATHNAME, client);
+      const clientModule = await getModule(pathname);
+      const element = getModuleElement(clientModule, pathname);
 
       const staticMarkup = renderToStaticMarkup(
         <>
@@ -257,8 +142,7 @@ const serveStatic = async () => {
 `;
 
       const outFile = path.resolve(
-        cwd,
-        staticDir,
+        OUT_PATHNAME,
         client
           .replace(/\.client\..+/, '.html')
           .replace(/(^|\/)([^/]+)\.html$/, (match, pre, name) => {
@@ -271,7 +155,7 @@ const serveStatic = async () => {
       );
 
       // eslint-disable-next-line no-console
-      console.log(`Created ${path.relative(cwd, outFile)}`);
+      console.log(`Created ${path.relative(CWD, outFile)}`);
 
       const ourDir = path.dirname(outFile);
 
