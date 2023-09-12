@@ -8,6 +8,7 @@
   },
   "type": "module",
   "scripts": {
+    "build": "tsc --noEmit false",
     "build-static": "ts-node-esm --files ./src/cli/index.ts build static",
     "typecheck": "tsc --noEmit",
     "format-check": "prettier --check '**/*'",
