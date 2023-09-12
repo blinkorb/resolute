@@ -9,7 +9,7 @@ export const compileTypeScript = (
     target: ts.ScriptTarget.ESNext,
     module: ts.ModuleKind.NodeNext,
     declaration: false,
-    sourceMap: true,
+    inlineSourceMap: true,
     jsx: ts.JsxEmit.React,
     outDir,
     rootDir,
