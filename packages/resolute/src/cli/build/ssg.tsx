@@ -3,24 +3,21 @@ import path from 'node:path';
 import url from 'node:url';
 
 import cpy from 'cpy';
-import { cruise, IDependency } from 'dependency-cruiser';
 import express from 'express';
 import { glob } from 'glob';
 import { mkdirpSync } from 'mkdirp';
-import React, {
-  ComponentType,
-  isValidElement,
-  ReactElement,
-  ReactNode,
-} from 'react';
+import React, { ReactNode } from 'react';
 import { renderToStaticMarkup, renderToString } from 'react-dom/server';
 import { Helmet } from 'react-helmet';
 import { rimrafSync } from 'rimraf';
 
 import { PORT } from '../../constants.js';
 import type { RequestMethod } from '../../index.js';
-import type { EmptyObject } from '../../types.js';
+import { UnknownObject } from '../../types.js';
+import { getModuleElement } from '../../utils/component.js';
+import { assertModule, getModule } from '../../utils/module.js';
 import { compileBabel, compileTypeScript } from '../utils/compile.js';
+import { getNodeModuleDependencies } from '../utils/deps.js';
 
 // const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
@@ -30,13 +27,6 @@ const staticDir = 'static/';
 const publicFiles = 'public/**/*';
 const MATCHES_LOCAL = /^[./]/;
 const cwd = process.cwd();
-
-type UnknownObject = Record<string, unknown>;
-
-type AssertUnknownObject = (
-  module: unknown,
-  pathname: string
-) => asserts module is UnknownObject;
 
 // const resolvePromises = async (
 //   promises: readonly ((() => Promise<any>) | Promise<any>)[]
@@ -53,35 +43,6 @@ type AssertUnknownObject = (
 //     }
 //   }
 // };
-
-type AsyncComponent<P = EmptyObject> = (props: P) => Promise<ReactElement>;
-type ComponentLike = ComponentType | AsyncComponent;
-
-const isAsyncFunction = (value: ComponentLike): value is AsyncComponent => {
-  return value.constructor.name === 'AsyncFunction';
-};
-
-const AsyncComponentWrapper = ({
-  children,
-}: {
-  children: ReactNode | readonly ReactNode[];
-}) => <>{children}</>;
-
-const createElementAsync = async (
-  Comp: ComponentLike,
-  props: UnknownObject
-) => {
-  if (isAsyncFunction(Comp)) {
-    const element = await Comp(props);
-
-    return <AsyncComponentWrapper {...props}>{element}</AsyncComponentWrapper>;
-  }
-
-  return <Comp {...props} />;
-};
-
-const isComponentLike = (value: unknown): value is ComponentLike =>
-  typeof value === 'function';
 
 const MaybeHead = ({
   clientModule,
@@ -108,28 +69,6 @@ const MaybeHead = ({
       {children}
     </Helmet>
   );
-};
-
-const assertModule: AssertUnknownObject = (module, pathname) => {
-  if (!module) {
-    throw new Error(
-      `Module at "${pathname}" was not what we expected: ${module}`
-    );
-  }
-
-  if (typeof module !== 'object' || Array.isArray(module)) {
-    throw new Error(`Module at "${pathname}" must be an object`);
-  }
-};
-
-const assertProps: AssertUnknownObject = (props, pathname) => {
-  if (!props) {
-    throw new Error(`Props from "${pathname}" was no truthy: ${props}`);
-  }
-
-  if (typeof props !== 'object' || Array.isArray(props)) {
-    throw new Error(`Props from "${pathname}" must be an object`);
-  }
 };
 
 const buildStatic = async () => {
@@ -178,51 +117,13 @@ const buildStatic = async () => {
 
   await Promise.all(serverPromises);
 
-  const getProps = async (clientModule: UnknownObject, pathname: string) => {
-    if (!('getProps' in clientModule)) {
-      return {};
-    }
-
-    if (typeof clientModule.getProps !== 'function') {
-      throw new Error(
-        `Exported "getProps" must be a function in "${clientModule}"`
-      );
-    }
-
-    const props = await clientModule.getProps();
-
-    assertProps(props, pathname);
-
-    return props;
-  };
-
-  const dependencies = await cruise(
+  const nodeModules = await getNodeModuleDependencies(
     clientFiles
       .map((pathname) => path.resolve(root, pathname))
       .concat(
         path.relative(cwd, path.resolve(__dirname, '../../resolute-client.tsx'))
-      ),
-    {
-      baseDir: cwd,
-    }
+      )
   );
-
-  const nodeModules = dependencies.output.modules
-    .reduce<readonly IDependency[]>((acc, mod) => {
-      return [
-        ...acc,
-        ...mod.dependencies.filter((dep) =>
-          dep.resolved.includes('node_modules')
-        ),
-      ];
-    }, [])
-    .filter(
-      (dep, index, context) =>
-        context.findIndex(
-          (otherDep) =>
-            otherDep.module === dep.module && otherDep.resolved === dep.resolved
-        ) === index
-    );
 
   rimrafSync(path.resolve(cwd, staticDir));
   mkdirpSync(path.resolve(cwd, staticDir));
@@ -285,31 +186,9 @@ const buildStatic = async () => {
 
   const expressServer = app.listen(PORT, async () => {
     const clientPromises = clientFiles.map(async (client) => {
-      const clientModule: unknown = await import(path.join(cwd, root, client));
-
-      assertModule(clientModule, client);
-
-      const props = await getProps(clientModule, client);
-
-      if (!('default' in clientModule)) {
-        throw new Error(`Must have a default export in "${client}"`);
-      }
-
-      const { default: Comp } = clientModule;
-
-      if (!isComponentLike(Comp)) {
-        throw new Error(
-          `Default export must be a React component in "${client}"`
-        );
-      }
-
-      const element: unknown = await createElementAsync(Comp, props);
-
-      if (!isValidElement(element)) {
-        throw new Error(
-          `Default export must return a valid React element in "${client}"`
-        );
-      }
+      const pathname = path.join(cwd, root, client);
+      const clientModule = await getModule(pathname);
+      const element = await getModuleElement(clientModule, pathname);
 
       const staticHead = renderToStaticMarkup(
         <MaybeHead clientModule={clientModule} client={client} />
