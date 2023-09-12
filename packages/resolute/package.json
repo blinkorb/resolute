@@ -2,13 +2,14 @@
   "name": "@blinkorb/resolute",
   "version": "0.0.0",
   "description": "Bleeding edge React static/server side rendering framework",
-  "main": "src/index.ts",
+  "main": "./build/index.js",
   "bin": {
-    "resolute": "./src/cli/index.ts"
+    "resolute": "./build/cli/index.js"
   },
+  "types": "./build/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit false",
+    "build": "rm -rf build && tsc --noEmit false --declaration && chmod +x ./build/cli/index.js",
     "build-static": "ts-node-esm --files ./src/cli/index.ts build static",
     "typecheck": "tsc --noEmit",
     "format-check": "prettier --check '**/*'",

@@ -1,4 +1,4 @@
-#! /usr/bin/env npx ts-node-esm --files
+#! /usr/bin/env node
 
 import { collect, Command, Help, Program, RequireAny, Required } from 'jargs';
 
