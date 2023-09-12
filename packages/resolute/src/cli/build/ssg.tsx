@@ -250,6 +250,7 @@ const buildStatic = async () => {
       //   `${path.basename(dep.resolved)}.map`;
       process.env.NODE_ENV = 'production';
       const babelResult = transformSync(content, {
+        filename: dep.resolved,
         plugins: [
           [
             require.resolve(
