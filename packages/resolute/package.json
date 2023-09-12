@@ -10,7 +10,6 @@
   "type": "module",
   "scripts": {
     "build": "rm -rf build && tsc --noEmit false --declaration && chmod +x ./build/cli/index.js",
-    "build-static": "ts-node-esm --files ./src/cli/index.ts build static",
     "typecheck": "tsc --noEmit",
     "format-check": "prettier --check '**/*'",
     "format": "prettier --write '**/*'",
