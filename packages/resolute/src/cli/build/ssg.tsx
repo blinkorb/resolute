@@ -114,14 +114,10 @@ const buildStatic = async () => {
 
       const babelResult = compileBabel(content, dep.resolved, ['NODE_ENV']);
 
-      const { code, map } = babelResult;
+      const { code } = babelResult;
 
       if (!code) {
         throw new Error(`No babel code for "${dep.resolved}"`);
-      }
-
-      if (!map) {
-        throw new Error(`No babel map for "${dep.resolved}"`);
       }
 
       fs.writeFileSync(
@@ -132,9 +128,6 @@ const buildStatic = async () => {
         ),
         { encoding: 'utf8' }
       );
-      fs.writeFileSync(`${outPath}.map`, JSON.stringify(map), {
-        encoding: 'utf8',
-      });
     })
   );
 };

@@ -74,7 +74,7 @@ export const compileBabel = (
       require.resolve('babel-plugin-transform-commonjs'),
     ],
     minified: true,
-    sourceMaps: 'both',
+    sourceMaps: 'inline',
   });
 
   if (!babelResult) {
