@@ -17,4 +17,4 @@ export const MATCHES_LOCAL = /^[./]/;
 export const MATCHES_NODE_MODULE = /.*\/node_modules\//;
 export const MATCHES_RESOLUTE = /@blinkorb\/resolute|resolute\/build/;
 export const MATCHES_CLIENT = /\.(page|client|layout)\./;
-export const MATCHES_SERVER = /\.(server|static)\./;
+export const MATCHES_SERVER = /\.(server|static|api)\./;
