@@ -10,7 +10,6 @@ import { renderToStaticMarkup, renderToString } from 'react-dom/server';
 import { Helmet } from 'react-helmet';
 import { rimrafSync } from 'rimraf';
 
-import { PORT } from '../../constants.js';
 import type { RequestMethod } from '../../index.js';
 import { UnknownObject } from '../../types.js';
 import { getModuleElement } from '../../utils/component.js';
@@ -18,13 +17,14 @@ import { assertModule, getModule } from '../../utils/module.js';
 import {
   CWD,
   MATCHES_LOCAL,
-  OUT_PATHNAME,
+  MATCHES_NODE_MODULE,
   PUBLIC_FILES_GLOB,
   SRC_DIR,
   SRC_PATHNAME,
+  STATIC_PATHNAME,
 } from '../constants.js';
 import { compileBabel, compileTypeScript } from '../utils/compile.js';
-import { getNodeModuleDependencies } from '../utils/deps.js';
+import { getAllDependencies } from '../utils/deps.js';
 
 const MaybeHead = ({
   clientModule,
@@ -99,7 +99,7 @@ const buildStatic = async () => {
 
   await Promise.all(serverPromises);
 
-  const nodeModules = await getNodeModuleDependencies(
+  const { list } = await getAllDependencies(
     clientFiles
       .map((pathname) => path.resolve(SRC_DIR, pathname))
       .concat(
@@ -107,13 +107,17 @@ const buildStatic = async () => {
       )
   );
 
-  rimrafSync(OUT_PATHNAME);
-  mkdirpSync(OUT_PATHNAME);
-  await cpy(PUBLIC_FILES_GLOB, OUT_PATHNAME);
+  const nodeModules = list.filter((dep) =>
+    MATCHES_NODE_MODULE.test(dep.resolved)
+  );
+
+  rimrafSync(STATIC_PATHNAME);
+  mkdirpSync(STATIC_PATHNAME);
+  await cpy(PUBLIC_FILES_GLOB, STATIC_PATHNAME);
   await Promise.all(
     nodeModules.map(async (dep) => {
       const outPath = path.resolve(
-        OUT_PATHNAME,
+        STATIC_PATHNAME,
         dep.resolved.replace(/^.*node_modules\//, 'node-modules/')
       );
 
@@ -129,7 +133,7 @@ const buildStatic = async () => {
       //   `${path.basename(dep.resolved)}.map`;
       process.env.NODE_ENV = 'production';
 
-      const babelResult = compileBabel(content, dep.resolved);
+      const babelResult = compileBabel(content, dep.resolved, ['NODE_ENV']);
 
       const { code } = babelResult;
 
@@ -151,21 +155,21 @@ const buildStatic = async () => {
   compileTypeScript(
     clientFiles.map((pathname) => path.resolve(SRC_PATHNAME, pathname)),
     SRC_PATHNAME,
-    OUT_PATHNAME
+    STATIC_PATHNAME
   );
   const resoluteClientRoot = path.resolve(__dirname, '../../');
   compileTypeScript(
     [path.resolve(resoluteClientRoot, 'resolute-client.tsx')],
     resoluteClientRoot,
-    OUT_PATHNAME
+    STATIC_PATHNAME
   );
   compileTypeScript(
     [path.resolve(resoluteClientRoot, 'index.ts')],
     resoluteClientRoot,
-    path.resolve(OUT_PATHNAME, 'node-modules', '@blinkorb/resolute')
+    path.resolve(STATIC_PATHNAME, 'node-modules', '@blinkorb/resolute')
   );
 
-  const expressServer = app.listen(PORT, async () => {
+  const expressServer = app.listen(process.env.PORT || 3000, async () => {
     const clientPromises = clientFiles.map(async (client) => {
       const pathname = path.join(SRC_PATHNAME, client);
       const clientModule = await getModule(pathname);
@@ -224,7 +228,7 @@ const buildStatic = async () => {
 `;
 
       const outFile = path.resolve(
-        OUT_PATHNAME,
+        STATIC_PATHNAME,
         client
           .replace(/\.client\..+/, '.html')
           .replace(/(^|\/)([^/]+)\.html$/, (match, pre, name) => {

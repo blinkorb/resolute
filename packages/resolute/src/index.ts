@@ -1,7 +1,7 @@
 import queryString from 'query-string';
 import { useEffect, useState } from 'react';
 
-import { API_URL, METHODS } from './constants.js';
+import { MATCHES_TRAILING_SLASH, METHODS } from './constants.js';
 import type { AnyObject, EmptyObject } from './types.js';
 
 export type RequestMethod = (typeof METHODS)[number];
@@ -40,10 +40,16 @@ export const createAPI =
       queryParamsString ? `?${queryParamsString}` : ''
     }`.replace(/\/+/g, '/');
 
-    return fetch(`${API_URL.replace(/\/$/, '')}${resolvedPathname}`, {
-      method: (method || 'get').toUpperCase(),
-      ...rest,
-    }).then(async (response) => {
+    return fetch(
+      `${(process.env.API_URL || '').replace(
+        MATCHES_TRAILING_SLASH,
+        ''
+      )}${resolvedPathname}`,
+      {
+        method: (method || 'get').toUpperCase(),
+        ...rest,
+      }
+    ).then(async (response) => {
       return response.json() as Promise<
         S[K] extends RequestHandler<infer T> ? T : never
       >;

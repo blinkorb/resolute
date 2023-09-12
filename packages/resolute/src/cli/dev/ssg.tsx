@@ -10,17 +10,16 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { Helmet } from 'react-helmet';
 import { rimrafSync } from 'rimraf';
 
-import { PORT } from '../../constants.js';
 import type { RequestMethod } from '../../index.js';
 import { UnknownObject } from '../../types.js';
 import { getModuleElement } from '../../utils/component.js';
 import { assertModule, getModule } from '../../utils/module.js';
 import {
   CWD,
-  OUT_PATHNAME,
   PUBLIC_FILES_GLOB,
   SRC_DIR,
   SRC_PATHNAME,
+  STATIC_PATHNAME,
 } from '../constants.js';
 
 const MaybeHead = ({
@@ -93,11 +92,13 @@ const serveStatic = async () => {
 
   await Promise.all(serverPromises);
 
-  rimrafSync(OUT_PATHNAME);
-  mkdirpSync(OUT_PATHNAME);
-  cpy(PUBLIC_FILES_GLOB, OUT_PATHNAME);
+  rimrafSync(STATIC_PATHNAME);
+  mkdirpSync(STATIC_PATHNAME);
+  cpy(PUBLIC_FILES_GLOB, STATIC_PATHNAME);
 
-  app.use(express.static(OUT_PATHNAME));
+  app.use(express.static(STATIC_PATHNAME));
+
+  const PORT = process.env.PORT || 3000;
 
   const expressServer = app.listen(PORT, async () => {
     // eslint-disable-next-line no-console
@@ -142,7 +143,7 @@ const serveStatic = async () => {
 `;
 
       const outFile = path.resolve(
-        OUT_PATHNAME,
+        STATIC_PATHNAME,
         client
           .replace(/\.client\..+/, '.html')
           .replace(/(^|\/)([^/]+)\.html$/, (match, pre, name) => {

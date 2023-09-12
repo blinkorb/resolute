@@ -49,24 +49,32 @@ export const compileTypeScript = (
   });
 
   const exitCode = emitResult.emitSkipped ? 1 : 0;
-  // eslint-disable-next-line no-console
-  console.log(
-    `Compiled typescript from "${rootDir}" with exit code "${exitCode}".`
-  );
+  if (exitCode) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `Failed to compile typescript from "${rootDir}" with exit code "${exitCode}".`
+    );
+    return process.exit(1);
+  }
 };
 
-export const compileBabel = (content: string, filename: string) => {
+export const compileBabel = (
+  content: string,
+  filename: string,
+  envVars: readonly string[]
+) => {
   const babelResult = transformSync(content, {
     filename,
     plugins: [
       [
         require.resolve('babel-plugin-transform-inline-environment-variables'),
-        { include: ['NODE_ENV'] },
+        { include: envVars },
       ],
       require.resolve('babel-plugin-minify-dead-code-elimination'),
       require.resolve('babel-plugin-transform-commonjs'),
     ],
     minified: true,
+    sourceMaps: 'both',
   });
 
   if (!babelResult) {

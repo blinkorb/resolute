@@ -1,18 +1,13 @@
 import { cruise, IDependency } from 'dependency-cruiser';
 
-export const getNodeModuleDependencies = async (filenames: string[]) => {
+export const getAllDependencies = async (filenames: string[]) => {
   const dependencies = await cruise(filenames, {
     baseDir: process.cwd(),
   });
 
-  const nodeModules = dependencies.output.modules
+  const list = dependencies.output.modules
     .reduce<readonly IDependency[]>((acc, mod) => {
-      return [
-        ...acc,
-        ...mod.dependencies.filter((dep) =>
-          dep.resolved.includes('node_modules')
-        ),
-      ];
+      return [...acc, ...mod.dependencies];
     }, [])
     .filter(
       (dep, index, context) =>
@@ -22,5 +17,8 @@ export const getNodeModuleDependencies = async (filenames: string[]) => {
         ) === index
     );
 
-  return nodeModules;
+  return {
+    modules: dependencies.output.modules,
+    list,
+  };
 };
