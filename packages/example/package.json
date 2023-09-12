@@ -5,8 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build-ssg": "resolute build",
-    "dev-ssg": "resolute dev",
+    "build-ssg": "(cd ../resolute ; npm run build) && resolute build",
+    "dev-ssg": "(cd ../resolute ; npm run build) && resolute dev",
     "typecheck": "tsc --noEmit",
     "format-check": "prettier --check '**/*'",
     "format": "prettier --write '**/*'",
