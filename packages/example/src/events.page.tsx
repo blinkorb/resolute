@@ -13,11 +13,15 @@ const Counter = () => {
   );
 };
 
-const Events = async () => (
-  <>
-    <p>Hello</p>
-    <Counter />
-  </>
-);
+const Events = async () => {
+  await new Promise((resolve) => window.setTimeout(resolve, 1000));
+
+  return (
+    <>
+      <p>Hello</p>
+      <Counter />
+    </>
+  );
+};
 
 export default Events;
