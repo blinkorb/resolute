@@ -18,11 +18,11 @@ import React, {
 import { renderToStaticMarkup, renderToString } from 'react-dom/server';
 import { Helmet } from 'react-helmet';
 import { rimrafSync } from 'rimraf';
-import ts from 'typescript';
 
 import { PORT } from '../../constants.js';
 import type { RequestMethod } from '../../index.js';
 import type { EmptyObject } from '../../types.js';
+import { compileTypeScript } from '../utils/compile.js';
 
 // const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
@@ -133,61 +133,6 @@ const assertProps: AssertUnknownObject = (props, pathname) => {
   if (typeof props !== 'object' || Array.isArray(props)) {
     throw new Error(`Props from "${pathname}" must be an object`);
   }
-};
-
-const compile = (
-  fileNames: string[],
-  rootDir: string,
-  outDir: string
-): void => {
-  console.log(fileNames);
-
-  const program = ts.createProgram(fileNames, {
-    target: ts.ScriptTarget.ESNext,
-    module: ts.ModuleKind.NodeNext,
-    declaration: false,
-    sourceMap: true,
-    jsx: ts.JsxEmit.React,
-    outDir,
-    rootDir,
-  });
-  const emitResult = program.emit();
-
-  emitResult.emittedFiles?.forEach((emittedFile) => {
-    console.log(`Created ${emittedFile}`);
-  });
-
-  const allDiagnostics = ts
-    .getPreEmitDiagnostics(program)
-    .concat(emitResult.diagnostics);
-
-  allDiagnostics.forEach((diagnostic) => {
-    if (diagnostic.file) {
-      const { line, character } = ts.getLineAndCharacterOfPosition(
-        diagnostic.file,
-        diagnostic.start!
-      );
-      const message = ts.flattenDiagnosticMessageText(
-        diagnostic.messageText,
-        '\n'
-      );
-      // eslint-disable-next-line no-console
-      console.log(
-        `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`
-      );
-    } else {
-      // eslint-disable-next-line no-console
-      console.log(
-        ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')
-      );
-    }
-  });
-
-  const exitCode = emitResult.emitSkipped ? 1 : 0;
-  // eslint-disable-next-line no-console
-  console.log(
-    `Compiled typescript from "${rootDir}" with exit code "${exitCode}".`
-  );
 };
 
 const buildStatic = async () => {
@@ -339,18 +284,18 @@ const buildStatic = async () => {
     })
   );
   const clientRoot = path.resolve(cwd, root);
-  compile(
+  compileTypeScript(
     clientFiles.map((pathname) => path.resolve(clientRoot, pathname)),
     clientRoot,
     path.resolve(cwd, staticDir)
   );
   const resoluteClientRoot = path.resolve(__dirname, '../../');
-  compile(
+  compileTypeScript(
     [path.resolve(resoluteClientRoot, 'resolute-client.tsx')],
     resoluteClientRoot,
     path.resolve(cwd, staticDir)
   );
-  compile(
+  compileTypeScript(
     [path.resolve(resoluteClientRoot, 'index.ts')],
     resoluteClientRoot,
     path.resolve(cwd, staticDir, 'node-modules', '@blinkorb/resolute')
