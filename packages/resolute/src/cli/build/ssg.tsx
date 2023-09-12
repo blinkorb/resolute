@@ -122,6 +122,7 @@ const buildStatic = async () => {
 
       fs.writeFileSync(
         outPath,
+        // Hack to fix react imports
         code.replace(
           /(import\s+[\w]+\s+from\s*["']\.\/cjs\/react\.(production|development)\.min\.js["'];)/,
           `$1export * from"./cjs/react.$2.min.js";`
