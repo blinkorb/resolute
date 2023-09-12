@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import url from 'node:url';
 
 import cpy from 'cpy';
 import express from 'express';
@@ -16,33 +15,16 @@ import type { RequestMethod } from '../../index.js';
 import { UnknownObject } from '../../types.js';
 import { getModuleElement } from '../../utils/component.js';
 import { assertModule, getModule } from '../../utils/module.js';
+import {
+  CWD,
+  MATCHES_LOCAL,
+  OUT_PATHNAME,
+  PUBLIC_FILES_GLOB,
+  SRC_DIR,
+  SRC_PATHNAME,
+} from '../constants.js';
 import { compileBabel, compileTypeScript } from '../utils/compile.js';
 import { getNodeModuleDependencies } from '../utils/deps.js';
-
-// const __filename = url.fileURLToPath(import.meta.url);
-const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-
-const root = 'src/';
-const staticDir = 'static/';
-const publicFiles = 'public/**/*';
-const MATCHES_LOCAL = /^[./]/;
-const cwd = process.cwd();
-
-// const resolvePromises = async (
-//   promises: readonly ((() => Promise<any>) | Promise<any>)[]
-// ) => {
-//   const copy = [...promises];
-
-//   while (copy.length) {
-//     const current = copy.shift();
-
-//     if (current instanceof Promise) {
-//       await current;
-//     } else if (typeof current === 'function') {
-//       await current();
-//     }
-//   }
-// };
 
 const MaybeHead = ({
   clientModule,
@@ -73,13 +55,13 @@ const MaybeHead = ({
 
 const buildStatic = async () => {
   const serverFiles = glob
-    .sync(`${root}**/*.server.{ts,tsx,js,jsx,mjs,cjs}`, { cwd })
-    .map((pathname) => path.relative(root, pathname))
+    .sync(`${SRC_DIR}**/*.server.{ts,tsx,js,jsx,mjs,cjs}`, { cwd: CWD })
+    .map((pathname) => path.relative(SRC_DIR, pathname))
     // FIXME: remove these filters for slugs
     .filter((pathname) => !pathname.includes('${'));
   const clientFiles = glob
-    .sync(`${root}**/*.client.{ts,tsx,js,jsx,mjs,cjs}`, { cwd })
-    .map((pathname) => path.relative(root, pathname))
+    .sync(`${SRC_DIR}**/*.client.{ts,tsx,js,jsx,mjs,cjs}`, { cwd: CWD })
+    .map((pathname) => path.relative(SRC_DIR, pathname))
     // FIXME: remove these filters for slugs
     .filter((pathname) => !pathname.includes('${'));
   // const layoutFiles = glob
@@ -91,7 +73,7 @@ const buildStatic = async () => {
   const app = express();
 
   const serverPromises = serverFiles.map(async (server) => {
-    const serverModule: unknown = await import(path.join(cwd, root, server));
+    const serverModule: unknown = await import(path.join(CWD, SRC_DIR, server));
 
     assertModule(serverModule, server);
 
@@ -119,20 +101,19 @@ const buildStatic = async () => {
 
   const nodeModules = await getNodeModuleDependencies(
     clientFiles
-      .map((pathname) => path.resolve(root, pathname))
+      .map((pathname) => path.resolve(SRC_DIR, pathname))
       .concat(
-        path.relative(cwd, path.resolve(__dirname, '../../resolute-client.tsx'))
+        path.relative(CWD, path.resolve(__dirname, '../../resolute-client.tsx'))
       )
   );
 
-  rimrafSync(path.resolve(cwd, staticDir));
-  mkdirpSync(path.resolve(cwd, staticDir));
-  await cpy(publicFiles, path.resolve(cwd, staticDir));
+  rimrafSync(OUT_PATHNAME);
+  mkdirpSync(OUT_PATHNAME);
+  await cpy(PUBLIC_FILES_GLOB, OUT_PATHNAME);
   await Promise.all(
     nodeModules.map(async (dep) => {
       const outPath = path.resolve(
-        cwd,
-        staticDir,
+        OUT_PATHNAME,
         dep.resolved.replace(/^.*node_modules\//, 'node-modules/')
       );
 
@@ -166,27 +147,27 @@ const buildStatic = async () => {
       );
     })
   );
-  const clientRoot = path.resolve(cwd, root);
+
   compileTypeScript(
-    clientFiles.map((pathname) => path.resolve(clientRoot, pathname)),
-    clientRoot,
-    path.resolve(cwd, staticDir)
+    clientFiles.map((pathname) => path.resolve(SRC_PATHNAME, pathname)),
+    SRC_PATHNAME,
+    OUT_PATHNAME
   );
   const resoluteClientRoot = path.resolve(__dirname, '../../');
   compileTypeScript(
     [path.resolve(resoluteClientRoot, 'resolute-client.tsx')],
     resoluteClientRoot,
-    path.resolve(cwd, staticDir)
+    OUT_PATHNAME
   );
   compileTypeScript(
     [path.resolve(resoluteClientRoot, 'index.ts')],
     resoluteClientRoot,
-    path.resolve(cwd, staticDir, 'node-modules', '@blinkorb/resolute')
+    path.resolve(OUT_PATHNAME, 'node-modules', '@blinkorb/resolute')
   );
 
   const expressServer = app.listen(PORT, async () => {
     const clientPromises = clientFiles.map(async (client) => {
-      const pathname = path.join(cwd, root, client);
+      const pathname = path.join(SRC_PATHNAME, client);
       const clientModule = await getModule(pathname);
       const element = await getModuleElement(clientModule, pathname);
 
@@ -243,8 +224,7 @@ const buildStatic = async () => {
 `;
 
       const outFile = path.resolve(
-        cwd,
-        staticDir,
+        OUT_PATHNAME,
         client
           .replace(/\.client\..+/, '.html')
           .replace(/(^|\/)([^/]+)\.html$/, (match, pre, name) => {
@@ -257,7 +237,7 @@ const buildStatic = async () => {
       );
 
       // eslint-disable-next-line no-console
-      console.log(`Created ${path.relative(cwd, outFile)}`);
+      console.log(`Created ${path.relative(CWD, outFile)}`);
 
       const ourDir = path.dirname(outFile);
 
