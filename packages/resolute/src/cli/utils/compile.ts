@@ -1,4 +1,9 @@
+import { createRequire } from 'node:module';
+
+import { transformSync } from '@babel/core';
 import ts from 'typescript';
+
+const require = createRequire(import.meta.url);
 
 export const compileTypeScript = (
   fileNames: string[],
@@ -48,4 +53,25 @@ export const compileTypeScript = (
   console.log(
     `Compiled typescript from "${rootDir}" with exit code "${exitCode}".`
   );
+};
+
+export const compileBabel = (content: string, filename: string) => {
+  const babelResult = transformSync(content, {
+    filename,
+    plugins: [
+      [
+        require.resolve('babel-plugin-transform-inline-environment-variables'),
+        { include: ['NODE_ENV'] },
+      ],
+      require.resolve('babel-plugin-minify-dead-code-elimination'),
+      require.resolve('babel-plugin-transform-commonjs'),
+    ],
+    minified: true,
+  });
+
+  if (!babelResult) {
+    throw new Error(`No babel result for "${filename}"`);
+  }
+
+  return babelResult;
 };

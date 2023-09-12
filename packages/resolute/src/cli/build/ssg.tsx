@@ -1,9 +1,7 @@
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import url from 'node:url';
 
-import { transformSync } from '@babel/core';
 import cpy from 'cpy';
 import { cruise, IDependency } from 'dependency-cruiser';
 import express from 'express';
@@ -22,11 +20,10 @@ import { rimrafSync } from 'rimraf';
 import { PORT } from '../../constants.js';
 import type { RequestMethod } from '../../index.js';
 import type { EmptyObject } from '../../types.js';
-import { compileTypeScript } from '../utils/compile.js';
+import { compileBabel, compileTypeScript } from '../utils/compile.js';
 
 // const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-const require = createRequire(import.meta.url);
 
 const root = 'src/';
 const staticDir = 'static/';
@@ -249,24 +246,8 @@ const buildStatic = async () => {
       //   (sourceMapMatch && sourceMapMatch[1]) ||
       //   `${path.basename(dep.resolved)}.map`;
       process.env.NODE_ENV = 'production';
-      const babelResult = transformSync(content, {
-        filename: dep.resolved,
-        plugins: [
-          [
-            require.resolve(
-              'babel-plugin-transform-inline-environment-variables'
-            ),
-            { include: ['NODE_ENV'] },
-          ],
-          require.resolve('babel-plugin-minify-dead-code-elimination'),
-          require.resolve('babel-plugin-transform-commonjs'),
-        ],
-        minified: true,
-      });
 
-      if (!babelResult) {
-        throw new Error(`No babel result for "${dep.resolved}"`);
-      }
+      const babelResult = compileBabel(content, dep.resolved);
 
       const { code } = babelResult;
 
