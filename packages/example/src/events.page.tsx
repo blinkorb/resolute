@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
+
+import CounterClient from './components/counter-client.js';
 
 export const title = 'Events';
 
 const Counter = () => {
-  const [count, setCount] = useState(0);
-
   return (
     <div>
-      <p>Count: {count}</p>
-      <button onClick={() => setCount(count + 1)}>+</button>
+      <CounterClient />
     </div>
   );
 };

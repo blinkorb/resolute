@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
+
+import CounterClient from './components/counter-client.js';
 
 export const title = 'Counter';
 
@@ -7,13 +9,10 @@ export interface StaticProps {
 }
 
 const Counter = ({ foo }: StaticProps) => {
-  const [count, setCount] = useState(0);
-
   return (
     <div>
       <p>{foo}</p>
-      <p>Count: {count}</p>
-      <button onClick={() => setCount(count + 1)}>+</button>
+      <CounterClient />
     </div>
   );
 };
