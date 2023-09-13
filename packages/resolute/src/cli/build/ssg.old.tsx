@@ -133,13 +133,7 @@ const buildStatic = async () => {
       //   `${path.basename(dep.resolved)}.map`;
       process.env.NODE_ENV = 'production';
 
-      const babelResult = compileBabel(content, dep.resolved, ['NODE_ENV']);
-
-      const { code } = babelResult;
-
-      if (!code) {
-        throw new Error(`No babel code for "${dep.resolved}"`);
-      }
+      const code = compileBabel(content, dep.resolved, ['NODE_ENV']);
 
       fs.writeFileSync(
         outPath,
