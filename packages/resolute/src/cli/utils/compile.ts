@@ -60,11 +60,11 @@ export const compileTypeScript = (
 
 export const compileBabel = (
   content: string,
-  filename: string,
+  pathname: string,
   envVars: readonly string[]
 ) => {
   const babelResult = transformSync(content, {
-    filename,
+    filename: pathname,
     plugins: [
       [
         require.resolve('babel-plugin-transform-inline-environment-variables'),
@@ -78,8 +78,14 @@ export const compileBabel = (
   });
 
   if (!babelResult) {
-    throw new Error(`No babel result for "${filename}"`);
+    throw new Error(`No babel result for "${pathname}"`);
   }
 
-  return babelResult;
+  const { code } = babelResult;
+
+  if (typeof code !== 'string') {
+    throw new Error(`No babel code for "${pathname}"`);
+  }
+
+  return code;
 };

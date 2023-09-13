@@ -128,13 +128,7 @@ const buildStatic = async () => {
         encoding: 'utf8',
       });
 
-      const babelResult = compileBabel(content, pathname, ['NODE_ENV']);
-
-      const { code } = babelResult;
-
-      if (!code) {
-        throw new Error(`No babel code for "${pathname}"`);
-      }
+      const code = compileBabel(content, pathname, ['NODE_ENV']);
 
       fs.writeFileSync(
         outPath,
@@ -161,18 +155,12 @@ const buildStatic = async () => {
         encoding: 'utf8',
       });
 
-      const babelResult = compileBabel(content, pathname, [
+      const code = compileBabel(content, pathname, [
         'NODE_ENV',
         'PORT',
         'URL',
         'API_URL',
       ]);
-
-      const { code } = babelResult;
-
-      if (!code) {
-        throw new Error(`No babel code for "${pathname}"`);
-      }
 
       fs.writeFileSync(outPath, code, { encoding: 'utf8' });
     })
@@ -188,18 +176,12 @@ const buildStatic = async () => {
         encoding: 'utf8',
       });
 
-      const babelResult = compileBabel(content, pathname, [
+      const code = compileBabel(content, pathname, [
         'NODE_ENV',
         'PORT',
         'URL',
         'API_URL',
       ]);
-
-      const { code } = babelResult;
-
-      if (!code) {
-        throw new Error(`No babel code for "${pathname}"`);
-      }
 
       fs.writeFileSync(outPath, code, { encoding: 'utf8' });
     })
