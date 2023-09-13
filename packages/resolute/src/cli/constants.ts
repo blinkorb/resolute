@@ -11,6 +11,8 @@ export const SRC_DIR = 'src/';
 export const SRC_PATHNAME = path.resolve(CWD, SRC_DIR);
 export const STATIC_DIR = 'static/';
 export const STATIC_PATHNAME = path.resolve(CWD, STATIC_DIR);
+export const SERVER_DIR = 'server/';
+export const SERVER_PATHNAME = path.resolve(CWD, SERVER_DIR);
 export const PUBLIC_FILES_GLOB = 'public/**/*';
 
 export const MATCHES_LOCAL = /^[./]/;
