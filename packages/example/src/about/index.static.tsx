@@ -1,9 +1,9 @@
 import { createAPI } from '@blinkorb/resolute';
 import React from 'react';
 
-import AboutInfo from './components/about-info.js';
+import AboutInfo from '../components/about-info.js';
 
-const fetch = createAPI<typeof import('./about.api.js')>('./about.api.js');
+const fetch = createAPI<typeof import('./index.api.js')>('./about.api.js');
 
 export const title = 'About Us';
 
