@@ -8,9 +8,13 @@ import { rimrafSync } from 'rimraf';
 
 import { MATCHES_TRAILING_SLASH } from '../../constants.js';
 import {
+  MATCHES_CLIENT,
+  MATCHES_LAYOUT,
   MATCHES_NODE_MODULE,
+  MATCHES_PAGE,
   MATCHES_RESOLUTE,
-  MATCHES_SERVER,
+  MATCHES_SERVER_STATIC_API,
+  MATCHES_STATIC,
   PUBLIC_FILES_GLOB,
   RESOLUTE_PATHNAME,
   RESOLUTE_VERSION,
@@ -20,6 +24,27 @@ import {
 } from '../constants.js';
 import { compileBabel, compileTypeScript } from '../utils/compile.js';
 import { getAllDependencies, getVersionMap } from '../utils/deps.js';
+import { isPartialRouteMatch, pathnameToRoute } from '../utils/routes.js';
+
+interface LayoutInfo {
+  pathname: string;
+  route: string;
+  depth: number;
+}
+
+interface RouteInfoWithLayoutInfo {
+  page?: string;
+  client?: string;
+  static?: string;
+  layouts: readonly LayoutInfo[];
+}
+
+interface RouteInfo extends Omit<RouteInfoWithLayoutInfo, 'layouts'> {
+  layouts: readonly string[];
+}
+
+type RouteMappingWithLayoutInfo = Record<string, RouteInfoWithLayoutInfo>;
+type RouteMapping = Record<string, RouteInfo>;
 
 const buildStatic = async () => {
   // Set environment variables
@@ -82,7 +107,7 @@ const buildStatic = async () => {
     mod.dependencies.forEach((dep) => {
       if (
         !MATCHES_NODE_MODULE.test(dep.resolved) &&
-        MATCHES_SERVER.test(dep.module)
+        MATCHES_SERVER_STATIC_API.test(dep.resolved)
       ) {
         // eslint-disable-next-line no-console
         console.error(
@@ -203,6 +228,136 @@ const buildStatic = async () => {
       fs.writeFileSync(outPath, code, { encoding: 'utf8' });
     })
   );
+
+  // Get page, client, static, server, and layout files
+  const componentFiles = glob.sync(
+    path.resolve(SERVER_PATHNAME, '**/*.{page,client,static,server,layout}.js')
+  );
+
+  // Construct routes from component pathnames
+  const componentRoutes = componentFiles.map((pathname) => ({
+    pathname,
+    route: pathnameToRoute(pathname),
+  }));
+
+  // Collect components related to specific routes
+  const routeMapping = componentRoutes.reduce<RouteMappingWithLayoutInfo>(
+    (acc, { pathname, route }) => {
+      if (MATCHES_PAGE.test(pathname)) {
+        if (acc[route]?.page) {
+          // eslint-disable-next-line no-console
+          console.error(`Encountered 2 pages for route "${route}"`);
+          return process.exit(1);
+        }
+
+        return {
+          ...acc,
+          [route]: {
+            ...acc[route],
+            page: pathname,
+            layouts: [],
+          },
+        };
+      }
+
+      if (MATCHES_CLIENT.test(pathname)) {
+        if (acc[route]?.client) {
+          // eslint-disable-next-line no-console
+          console.error(`Encountered 2 client pages for route "${route}"`);
+          return process.exit(1);
+        }
+
+        return {
+          ...acc,
+          [route]: {
+            ...acc[route],
+            client: pathname,
+            layouts: [],
+          },
+        };
+      }
+
+      if (MATCHES_STATIC.test(pathname)) {
+        if (acc[route]?.static) {
+          // eslint-disable-next-line no-console
+          console.error(`Encountered 2 static pages for route "${route}"`);
+          return process.exit(1);
+        }
+
+        return {
+          ...acc,
+          [route]: {
+            ...acc[route],
+            static: pathname,
+            layouts: [],
+          },
+        };
+      }
+
+      return acc;
+    },
+    {}
+  );
+
+  // Complain about client side components without a server side component
+  Object.entries(routeMapping).forEach(([route, info]) => {
+    if (info.client && !info.static) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Found client module for route "${route}" but no static module`
+      );
+      return process.exit(1);
+    }
+  });
+
+  // Collect info about layouts
+  const layouts = componentRoutes
+    .filter(({ pathname }) => MATCHES_LAYOUT.test(pathname))
+    .map(({ pathname, route }) => ({
+      pathname,
+      route,
+      depth: pathname.split('/').length,
+    }));
+
+  // Add layouts to route mapping
+  const routeMappingWithLayouts = Object.fromEntries(
+    Object.entries(routeMapping).map(([route, info]) => {
+      const newInfo = layouts.reduce<RouteInfoWithLayoutInfo>((acc, layout) => {
+        if (isPartialRouteMatch(route, layout.route)) {
+          return {
+            ...acc,
+            layouts: [...acc.layouts, layout],
+          };
+        }
+
+        return acc;
+      }, info);
+
+      return [
+        route,
+        {
+          ...newInfo,
+          layouts: newInfo.layouts
+            .filter((layout, index, context) => {
+              const layoutMatchingDepth = context.find(
+                (l, i) => l.depth === layout.depth && i !== index
+              );
+
+              return (
+                // Ensure we only have one layout at each depth
+                !layoutMatchingDepth ||
+                // Taking the longest match if there are multiple
+                layout.route.length > layoutMatchingDepth.route.length
+              );
+            })
+            .sort((a, b) => a.depth - b.depth)
+            .map(({ pathname }) => pathname),
+        },
+      ];
+    })
+  ) satisfies RouteMapping;
+
+  console.log(routeMappingWithLayouts);
 };
 
 export default buildStatic;
