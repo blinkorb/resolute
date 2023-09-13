@@ -13,12 +13,13 @@ import {
   MATCHES_SERVER,
   PUBLIC_FILES_GLOB,
   RESOLUTE_PATHNAME,
+  RESOLUTE_VERSION,
   SERVER_PATHNAME,
   SRC_PATHNAME,
   STATIC_PATHNAME,
 } from '../constants.js';
 import { compileBabel, compileTypeScript } from '../utils/compile.js';
-import { getAllDependencies } from '../utils/deps.js';
+import { getAllDependencies, getVersionMap } from '../utils/deps.js';
 
 const buildStatic = async () => {
   // Set environment variables
@@ -39,7 +40,12 @@ const buildStatic = async () => {
   // Copy resolute files
   await cpy(
     path.resolve(RESOLUTE_PATHNAME, '**/*.js'),
-    path.resolve(STATIC_PATHNAME, 'node-modules', '@blinkorb', 'resolute'),
+    path.resolve(
+      STATIC_PATHNAME,
+      'node-modules',
+      '@blinkorb',
+      `resolute@${RESOLUTE_VERSION}`
+    ),
     { filter: (file) => !file.path.includes('/cli/') }
   );
 
@@ -59,7 +65,7 @@ const buildStatic = async () => {
   const resoluteFiles = glob.sync(
     path.resolve(
       STATIC_PATHNAME,
-      'node-modules/@blinkorb/resolute/**/*.{js,jsx,mjs,cjs}'
+      'node-modules/@blinkorb/resolute@*/**/*.{js,jsx,mjs,cjs}'
     )
   );
 
@@ -106,64 +112,75 @@ const buildStatic = async () => {
   );
 
   // Filter out node modules
-  const clientLocalDependencyPaths = uniqueDependencies
-    .filter((dep) => !MATCHES_NODE_MODULE.test(dep.resolved))
-    .map((dep) => dep.resolved);
+  const clientLocalDependencies = uniqueDependencies.filter(
+    (dep) => !MATCHES_NODE_MODULE.test(dep.resolved)
+  );
 
   // Filter only node modules
-  const nodeModuleDependencyPaths = uniqueDependencies
-    .filter((dep) => MATCHES_NODE_MODULE.test(dep.resolved))
-    .map((dep) => dep.resolved);
+  const nodeModuleDependencies = uniqueDependencies.filter((dep) =>
+    MATCHES_NODE_MODULE.test(dep.resolved)
+  );
+
+  const nodeModulesVersionMap = getVersionMap(nodeModuleDependencies);
 
   // Compile node modules with babel to handle env vars and dead code elimination
   await Promise.all(
-    nodeModuleDependencyPaths.map(async (pathname) => {
-      const outPath = path.resolve(
-        STATIC_PATHNAME,
-        pathname.replace(/^.*node_modules\//, 'node-modules/')
-      );
+    nodeModuleDependencies
+      .map((dep) => dep.resolved)
+      .map(async (pathname) => {
+        const outPath = path.resolve(
+          STATIC_PATHNAME,
+          pathname.replace(
+            /^.*node_modules\/([\w-]+|@[\w-]+\/[\w-]+)(\/[\w-]+)/,
+            (_match, moduleName, rest) => {
+              return `node-modules/${moduleName}@${nodeModulesVersionMap[moduleName]}${rest}`;
+            }
+          )
+        );
 
-      mkdirpSync(path.dirname(outPath));
-      const content = fs.readFileSync(pathname, {
-        encoding: 'utf8',
-      });
+        mkdirpSync(path.dirname(outPath));
+        const content = fs.readFileSync(pathname, {
+          encoding: 'utf8',
+        });
 
-      const code = compileBabel(content, pathname, ['NODE_ENV']);
+        const code = compileBabel(content, pathname, ['NODE_ENV']);
 
-      fs.writeFileSync(
-        outPath,
-        // Hack to fix react imports
-        code.replace(
-          /(import\s+[\w]+\s+from\s*["']\.\/cjs\/react\.(production|development)\.min\.js["'];)/,
-          `$1export * from"./cjs/react.$2.min.js";`
-        ),
-        { encoding: 'utf8' }
-      );
-    })
+        fs.writeFileSync(
+          outPath,
+          // Hack to fix react imports
+          code.replace(
+            /(import\s+[\w]+\s+from\s*["']\.\/cjs\/react\.(production|development)\.min\.js["'];)/,
+            `$1export * from"./cjs/react.$2.min.js";`
+          ),
+          { encoding: 'utf8' }
+        );
+      })
   );
 
   // Compile client modules with babel to handle env vars and dead code elimination
   await Promise.all(
-    [...clientFiles, ...clientLocalDependencyPaths].map(async (pathname) => {
-      const outPath = path.resolve(
-        STATIC_PATHNAME,
-        path.relative(SERVER_PATHNAME, pathname)
-      );
+    [...clientFiles, ...clientLocalDependencies.map((dep) => dep.resolved)].map(
+      async (pathname) => {
+        const outPath = path.resolve(
+          STATIC_PATHNAME,
+          path.relative(SERVER_PATHNAME, pathname)
+        );
 
-      mkdirpSync(path.dirname(outPath));
-      const content = fs.readFileSync(pathname, {
-        encoding: 'utf8',
-      });
+        mkdirpSync(path.dirname(outPath));
+        const content = fs.readFileSync(pathname, {
+          encoding: 'utf8',
+        });
 
-      const code = compileBabel(content, pathname, [
-        'NODE_ENV',
-        'PORT',
-        'URL',
-        'API_URL',
-      ]);
+        const code = compileBabel(content, pathname, [
+          'NODE_ENV',
+          'PORT',
+          'URL',
+          'API_URL',
+        ]);
 
-      fs.writeFileSync(outPath, code, { encoding: 'utf8' });
-    })
+        fs.writeFileSync(outPath, code, { encoding: 'utf8' });
+      }
+    )
   );
 
   // Compile resolute modules in place with babel to handle env vars and dead code elimination

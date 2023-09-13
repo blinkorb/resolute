@@ -1,11 +1,17 @@
 import path from 'node:path';
 import url from 'node:url';
 
+import { readPackageJsonVersion } from './utils/deps.js';
+
 export const CWD = process.cwd();
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
 export const RESOLUTE_PATHNAME = path.resolve(__dirname, '../');
+
+export const RESOLUTE_VERSION = readPackageJsonVersion(
+  path.resolve(RESOLUTE_PATHNAME, '../package.json')
+);
 
 export const SRC_DIR = 'src/';
 export const SRC_PATHNAME = path.resolve(CWD, SRC_DIR);
@@ -20,3 +26,4 @@ export const MATCHES_NODE_MODULE = /.*\/node_modules\//;
 export const MATCHES_RESOLUTE = /@blinkorb\/resolute|resolute\/build/;
 export const MATCHES_CLIENT = /\.(page|client|layout)\./;
 export const MATCHES_SERVER = /\.(server|static|api)\./;
+export const MATCHES_NODE_MODULE_RELATIVE = /[\w-]+\/[\w-]+/;
