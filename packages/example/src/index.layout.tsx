@@ -15,13 +15,16 @@ const Layout = ({
           <a href="/events">Events (hydrated)</a>
         </li>
         <li>
-          <a href="/about">About</a>
+          <a href="/about">About (overridden layout)</a>
         </li>
         <li>
           <a href="/counter">Counter (avoid hydration)</a>
         </li>
         <li>
           <a href="/client-only">Client Only</a>
+        </li>
+        <li>
+          <a href="/nested-layout">Nested Layout</a>
         </li>
       </ul>
     </header>
