@@ -26,6 +26,9 @@ const Layout = ({
         <li>
           <a href="/nested-layout">Nested Layout</a>
         </li>
+        <li>
+          <a href="/some-path">Hidden Route</a>
+        </li>
       </ul>
     </header>
     {children}
