@@ -43,3 +43,25 @@ export interface ResoluteJSONStatic {
 }
 
 export type ResoluteJSON = ResoluteJSONClient | ResoluteJSONStatic;
+
+export type RequestMethod =
+  | 'get'
+  | 'post'
+  | 'put'
+  | 'patch'
+  | 'delete'
+  | 'options';
+
+export interface RequestOptions<P extends AnyObject = EmptyObject>
+  extends RequestInit {
+  queryParams: P;
+}
+
+export type RequestHandler<T extends AnyObject> = () => Promise<T>;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyRequestHandler = RequestHandler<any>;
+
+export type ServerModule = Partial<Record<string, AnyRequestHandler>>;
+
+export type GetPropsResult<T extends () => void> = Awaited<ReturnType<T>>;

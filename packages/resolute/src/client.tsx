@@ -48,7 +48,11 @@ if ('client' in resoluteClientJson) {
   );
 
   const page = (
-    <Page pageModule={clientModule} pathname={client.pathname}>
+    <Page
+      pageModule={clientModule}
+      pathname={client.pathname}
+      href={globalThis.location.href}
+    >
       {withLayouts}
     </Page>
   );

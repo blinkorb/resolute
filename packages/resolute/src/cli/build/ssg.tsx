@@ -423,6 +423,7 @@ const buildStatic = async () => {
   const expressServer = app.listen(process.env.PORT, async () => {
     await Promise.all(
       Object.entries(routeMappingWithLayouts).map(async ([route, info]) => {
+        const href = `${(process.env.URL || '').replace(/\/?$/, '')}${route}`;
         const pathname = info.static || info.page!;
         const pageModule = await getModule(pathname);
         const pageProps = await getProps(pageModule, pathname);
@@ -471,6 +472,7 @@ const buildStatic = async () => {
           <Page
             pageModule={pageModule}
             pathname={fromServerPathToRelativeTSX(pathname)}
+            href={href}
           >
             {withLayouts}
           </Page>
