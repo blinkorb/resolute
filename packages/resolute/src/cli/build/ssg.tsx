@@ -13,8 +13,9 @@ import { rimrafSync } from 'rimraf';
 import { MATCHES_TRAILING_SLASH } from '../../constants.js';
 import { RequestMethod } from '../../index.js';
 import Page from '../../page.js';
-import { LayoutJSON } from '../../types.js';
+import { LayoutJSON, ResoluteJSON } from '../../types.js';
 import { getModuleElement, getProps } from '../../utils/component.js';
+import { getPageMeta } from '../../utils/meta.js';
 import { getModule } from '../../utils/module.js';
 import { toAPIPath } from '../../utils/paths.js';
 import {
@@ -417,7 +418,7 @@ const buildStatic = async () => {
         );
 
         // Wrap page with layouts
-        const { element: withLayouts } = await info.layouts.reduce<
+        const { element: withLayouts, layoutsJSON } = await info.layouts.reduce<
           Promise<{
             element: ReactElement;
             layoutsJSON: readonly LayoutJSON[];
@@ -439,7 +440,9 @@ const buildStatic = async () => {
               layoutsJSON: [
                 ...acc.layoutsJSON,
                 {
-                  pathname: layout,
+                  pathname: path
+                    .relative(SERVER_PATHNAME, layout)
+                    .replace(/^(\.?\/)?/, '/'),
                   props: layoutProps,
                 },
               ],
@@ -493,16 +496,42 @@ const buildStatic = async () => {
 
         const html = `<!DOCTYPE html><html><head>${head}</head><script type="importmap">${importMap}</script><script defer type="module" src="/node-modules/@blinkorb/resolute@${RESOLUTE_VERSION}/client.js"></script><body>${body}</body></html>\n`;
 
-        const outFile = path.resolve(
+        const outFileHTML = path.resolve(
           STATIC_PATHNAME,
           route.replace(/^\/?/, ''),
           'index.html'
         );
-        const ourDir = path.dirname(outFile);
+        const outDir = path.dirname(outFileHTML);
+        const outFileJSON = path.resolve(outDir, 'resolute.json');
 
-        // Output html
-        mkdirpSync(ourDir);
-        fs.writeFileSync(outFile, html, { encoding: 'utf8' });
+        const json = (
+          info.client || info.page
+            ? {
+                client: {
+                  pathname: path
+                    .relative(SERVER_PATHNAME, info.client || info.page!)
+                    .replace(/^(\.?\/)?/, '/'),
+                  layouts: layoutsJSON,
+                },
+                static: {
+                  meta: getPageMeta(
+                    pageModule,
+                    fromServerPathToRelativeTSX(pathname)
+                  ),
+                  props: pageProps,
+                },
+              }
+            : {
+                static: { head, body },
+              }
+        ) satisfies ResoluteJSON;
+
+        // Output json and html for page
+        mkdirpSync(outDir);
+        fs.writeFileSync(outFileHTML, html, { encoding: 'utf8' });
+        fs.writeFileSync(outFileJSON, JSON.stringify(json), {
+          encoding: 'utf8',
+        });
       })
     );
 
