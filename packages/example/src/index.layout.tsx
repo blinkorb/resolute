@@ -20,6 +20,9 @@ const Layout = ({
         <li>
           <a href="/counter">Counter</a>
         </li>
+        <li>
+          <a href="/client-only">Client Only</a>
+        </li>
       </ul>
     </header>
     {children}
