@@ -17,6 +17,9 @@ const Layout = ({
         <li>
           <a href="/about">About</a>
         </li>
+        <li>
+          <a href="/counter">Counter</a>
+        </li>
       </ul>
     </header>
     {children}
