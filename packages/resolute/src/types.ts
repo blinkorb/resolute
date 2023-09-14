@@ -14,3 +14,32 @@ export type AssertUnknownObject = (
   module: unknown,
   pathname: string
 ) => asserts module is UnknownObject;
+
+export interface PageMeta {
+  title?: string;
+}
+
+export interface LayoutJSON {
+  pathname: string;
+  props?: UnknownObject;
+}
+
+export interface ResoluteJSONClient {
+  client: {
+    pathname: string;
+    layouts: readonly LayoutJSON[];
+  };
+  static: {
+    meta: PageMeta;
+    props?: UnknownObject;
+  };
+}
+
+export interface ResoluteJSONStatic {
+  static: {
+    head: string;
+    body: string;
+  };
+}
+
+export type ResoluteJSON = ResoluteJSONClient | ResoluteJSONStatic;

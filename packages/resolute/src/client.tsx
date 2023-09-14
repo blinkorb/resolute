@@ -1,6 +1,6 @@
 import { hydrateRoot } from 'react-dom/client';
 
-import { getModuleElement } from './utils/component.js';
+import { getModuleElement, getProps } from './utils/component.js';
 import { getModule } from './utils/module.js';
 
 const resoluteClientJson = await fetch(
@@ -27,9 +27,8 @@ if ('client' in resoluteClientJson) {
   const { client } = resoluteClientJson;
 
   const clientModule = await getModule(client);
+  const props = await getProps(clientModule, client);
+  const element = await getModuleElement(clientModule, client, props);
 
-  hydrateRoot(
-    window.document.body,
-    await getModuleElement(clientModule, client)
-  );
+  hydrateRoot(window.document.body, element);
 }

@@ -13,7 +13,7 @@ const Counter = () => {
 };
 
 const Events = async () => {
-  await new Promise((resolve) => window.setTimeout(resolve, 1000));
+  await new Promise((resolve) => globalThis.setTimeout(resolve, 1000));
 
   return (
     <>

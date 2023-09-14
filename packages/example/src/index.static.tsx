@@ -1,7 +1,7 @@
 import { createAPI, GetPropsResult } from '@blinkorb/resolute';
 import React from 'react';
 
-const fetch = createAPI<typeof import('./index.api.js')>('./index.api.js');
+const fetch = createAPI<typeof import('./index.api.js')>('/');
 
 export const getProps = () => fetch('get');
 

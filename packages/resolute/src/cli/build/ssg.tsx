@@ -2,14 +2,25 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import cpy from 'cpy';
+import express from 'express';
 import { glob } from 'glob';
 import { mkdirpSync } from 'mkdirp';
+import React, { ReactElement } from 'react';
+import { renderToString } from 'react-dom/server';
+import { Helmet } from 'react-helmet';
 import { rimrafSync } from 'rimraf';
 
 import { MATCHES_TRAILING_SLASH } from '../../constants.js';
+import { RequestMethod } from '../../index.js';
+import Page from '../../page.js';
+import { LayoutJSON } from '../../types.js';
+import { getModuleElement, getProps } from '../../utils/component.js';
+import { getModule } from '../../utils/module.js';
+import { toAPIPath } from '../../utils/paths.js';
 import {
   MATCHES_CLIENT,
   MATCHES_LAYOUT,
+  MATCHES_LOCAL,
   MATCHES_NODE_MODULE,
   MATCHES_PAGE,
   MATCHES_RESOLUTE,
@@ -24,7 +35,12 @@ import {
 } from '../constants.js';
 import { compileBabel, compileTypeScript } from '../utils/compile.js';
 import { getAllDependencies, getVersionMap } from '../utils/deps.js';
-import { isPartialRouteMatch, pathnameToRoute } from '../utils/routes.js';
+import {
+  fromServerPathToRelativeTSX,
+  isPartialRouteMatch,
+  pathnameToRoute,
+  toStaticNodeModulePath,
+} from '../utils/paths.js';
 
 interface LayoutInfo {
   pathname: string;
@@ -155,12 +171,7 @@ const buildStatic = async () => {
       .map(async (pathname) => {
         const outPath = path.resolve(
           STATIC_PATHNAME,
-          pathname.replace(
-            /^.*node_modules\/([\w-]+|@[\w-]+\/[\w-]+)(\/[\w-]+)/,
-            (_match, moduleName, rest) => {
-              return `node-modules/${moduleName}@${nodeModulesVersionMap[moduleName]}${rest}`;
-            }
-          )
+          toStaticNodeModulePath(pathname, nodeModulesVersionMap)
         );
 
         mkdirpSync(path.dirname(outPath));
@@ -350,14 +361,138 @@ const buildStatic = async () => {
                 layout.route.length > layoutMatchingDepth.route.length
               );
             })
-            .sort((a, b) => a.depth - b.depth)
+            .sort((a, b) => b.depth - a.depth)
             .map(({ pathname }) => pathname),
         },
       ];
     })
   ) satisfies RouteMapping;
 
-  console.log(routeMappingWithLayouts);
+  const app = express();
+
+  await Promise.all(
+    glob
+      .sync(path.resolve(SERVER_PATHNAME, '**/*.api.js'))
+      .map(async (pathname) => {
+        const serverModule = await getModule(pathname);
+
+        Object.entries(serverModule).forEach(([fn, callback]) => {
+          const match = /^(get|put|post|patch|delete|options)/.exec(fn);
+
+          if (match && typeof callback === 'function') {
+            const [, methodName] = match;
+
+            const resolvedPathname = `/api/${toAPIPath(
+              path.relative(SERVER_PATHNAME, pathname),
+              fn
+            )}`;
+
+            app[methodName as RequestMethod](
+              resolvedPathname,
+              async (req, res) => {
+                const data = await callback(req);
+
+                res.json(data);
+              }
+            );
+          }
+        });
+      })
+  );
+
+  const expressServer = app.listen(process.env.PORT, async () => {
+    await Promise.all(
+      Object.entries(routeMappingWithLayouts).map(async ([, info]) => {
+        const pathname = info.static || info.page!;
+        const pageModule = await getModule(pathname);
+        const pageProps = await getProps(pageModule, pathname);
+        const element = await getModuleElement(
+          pageModule,
+          fromServerPathToRelativeTSX(pathname),
+          pageProps
+        );
+
+        // Wrap page with layouts
+        const { element: withLayouts } = await info.layouts.reduce<
+          Promise<{
+            element: ReactElement;
+            layoutsJSON: readonly LayoutJSON[];
+          }>
+        >(
+          async (accPromise, layout) => {
+            const acc = await accPromise;
+            const layoutModule = await getModule(layout);
+            const layoutProps = await getProps(layoutModule, layout);
+            const layoutElement = await getModuleElement(
+              layoutModule,
+              fromServerPathToRelativeTSX(layout),
+              layoutProps,
+              acc.element
+            );
+
+            return {
+              element: layoutElement,
+              layoutsJSON: [
+                ...acc.layoutsJSON,
+                {
+                  pathname: layout,
+                  props: layoutProps,
+                },
+              ],
+            };
+          },
+          Promise.resolve({ element, layoutsJSON: [] })
+        );
+
+        // Render page
+        const body = renderToString(
+          <Page
+            pageModule={pageModule}
+            pathname={fromServerPathToRelativeTSX(pathname)}
+          >
+            {withLayouts}
+          </Page>
+        );
+
+        const helmet = Helmet.renderStatic();
+
+        // Collect head info from helmet
+        const head = [
+          helmet.title.toString(),
+          helmet.meta.toString(),
+          helmet.link.toString(),
+          helmet.style.toString(),
+          helmet.script.toString(),
+        ]
+          .filter((str) => str)
+          .join('\n');
+
+        // Construct import map
+        const importMap = JSON.stringify(
+          nodeModuleDependencies
+            .filter((dep) => !MATCHES_LOCAL.test(dep.module))
+            .reduce(
+              (acc, dep) => {
+                return {
+                  ...acc,
+                  [`${dep.module}@${nodeModulesVersionMap[dep.module]}`]:
+                    toStaticNodeModulePath(dep.resolved, nodeModulesVersionMap),
+                };
+              },
+              {
+                '@blinkorb/resolute': `/node-modules/@blinkorb/resolute@${RESOLUTE_VERSION}/index.js`,
+              }
+            )
+        );
+
+        console.log(head, body, importMap);
+      })
+    );
+
+    // eslint-disable-next-line no-console
+    console.log('Closing...');
+    expressServer.close();
+  });
 };
 
 export default buildStatic;

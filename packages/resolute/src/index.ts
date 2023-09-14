@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { MATCHES_TRAILING_SLASH, METHODS } from './constants.js';
 import type { AnyObject, EmptyObject } from './types.js';
+import { toAPIPath } from './utils/paths.js';
 
 export type RequestMethod = (typeof METHODS)[number];
 
@@ -32,24 +33,17 @@ export const createAPI =
         })
       : '';
 
-    const resolvedPathname = `/api/${pathname
-      .replace(/^(\.?\/)?/, '')
-      .replace(/\.server\..+?$/, '')
-      .replace(/index$/, '')
-      .replace(/\/?$/, '/')}${fn}${
+    const resolvedPathname = `${(process.env.API_URL || '').replace(
+      MATCHES_TRAILING_SLASH,
+      '/'
+    )}${toAPIPath(pathname, fn)}${
       queryParamsString ? `?${queryParamsString}` : ''
     }`.replace(/\/+/g, '/');
 
-    return fetch(
-      `${(process.env.API_URL || '').replace(
-        MATCHES_TRAILING_SLASH,
-        ''
-      )}${resolvedPathname}`,
-      {
-        method: (method || 'get').toUpperCase(),
-        ...rest,
-      }
-    ).then(async (response) => {
+    return fetch(resolvedPathname, {
+      method: (method || 'get').toUpperCase(),
+      ...rest,
+    }).then(async (response) => {
       return response.json() as Promise<
         S[K] extends RequestHandler<infer T> ? T : never
       >;

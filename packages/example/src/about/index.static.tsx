@@ -3,7 +3,7 @@ import React from 'react';
 
 import AboutInfo from '../components/about-info.js';
 
-const fetch = createAPI<typeof import('./index.api.js')>('./about.api.js');
+const fetch = createAPI<typeof import('./index.api.js')>('/about');
 
 export const title = 'About Us';
 

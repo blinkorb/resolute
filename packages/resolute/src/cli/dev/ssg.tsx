@@ -12,7 +12,7 @@ import { rimrafSync } from 'rimraf';
 
 import type { RequestMethod } from '../../index.js';
 import { UnknownObject } from '../../types.js';
-import { getModuleElement } from '../../utils/component.js';
+import { getModuleElement, getProps } from '../../utils/component.js';
 import { assertModule, getModule } from '../../utils/module.js';
 import {
   CWD,
@@ -111,7 +111,8 @@ const serveStatic = async () => {
     const clientPromises = clientFiles.map(async (client) => {
       const pathname = path.join(SRC_PATHNAME, client);
       const clientModule = await getModule(pathname);
-      const element = getModuleElement(clientModule, pathname);
+      const props = await getProps(clientModule, pathname);
+      const element = getModuleElement(clientModule, pathname, props);
 
       const staticMarkup = renderToStaticMarkup(
         <>

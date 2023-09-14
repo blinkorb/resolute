@@ -69,10 +69,9 @@ export const getProps = async (
 export const getModuleElement = async (
   clientModule: UnknownObject,
   pathname: string,
+  props: UnknownObject,
   children?: readonly ReactNode[] | ReactNode
 ) => {
-  const props = await getProps(clientModule, pathname);
-
   if (!('default' in clientModule)) {
     throw new Error(`Must have a default export in "${pathname}"`);
   }

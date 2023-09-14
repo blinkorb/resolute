@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import path from 'node:path';
 
 import { cruise, IDependency } from 'dependency-cruiser';
 
@@ -62,9 +61,9 @@ export const getVersionMap = (
         !MATCHES_NODE_MODULE_RELATIVE.test(dep.module)
     )
     .reduce<Record<string, string>>((acc, dep) => {
-      const packagePath = path.resolve(
-        path.dirname(dep.resolved),
-        'package.json'
+      const packagePath = dep.resolved.replace(
+        /(\/node_modules\/)(@[\w-]+\/[\w-]+|[\w-]+)\/.*$/,
+        '$1$2/package.json'
       );
 
       try {

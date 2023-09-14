@@ -12,8 +12,8 @@ import { rimrafSync } from 'rimraf';
 
 import type { RequestMethod } from '../../index.js';
 import { UnknownObject } from '../../types.js';
-import { getModuleElement } from '../../utils/component.js';
-import { assertModule, getModule } from '../../utils/module.js';
+import { getModuleElement, getProps } from '../../utils/component.js';
+import { getModule } from '../../utils/module.js';
 import {
   CWD,
   MATCHES_LOCAL,
@@ -73,9 +73,7 @@ const buildStatic = async () => {
   const app = express();
 
   const serverPromises = serverFiles.map(async (server) => {
-    const serverModule: unknown = await import(path.join(CWD, SRC_DIR, server));
-
-    assertModule(serverModule, server);
+    const serverModule = await getModule(path.join(CWD, SRC_DIR, server));
 
     Object.entries(serverModule).forEach(([fn, callback]) => {
       const match = /^(get|put|post|patch|delete|options)/.exec(fn);
@@ -167,7 +165,8 @@ const buildStatic = async () => {
     const clientPromises = clientFiles.map(async (client) => {
       const pathname = path.join(SRC_PATHNAME, client);
       const clientModule = await getModule(pathname);
-      const element = await getModuleElement(clientModule, pathname);
+      const props = await getProps(clientModule, pathname);
+      const element = await getModuleElement(clientModule, pathname, props);
 
       const staticHead = renderToStaticMarkup(
         <MaybeHead clientModule={clientModule} client={client} />
