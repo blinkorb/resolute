@@ -184,7 +184,7 @@ const buildStatic = async () => {
           encoding: 'utf8',
         });
 
-        const code = compileBabel(content, pathname, ['NODE_ENV']);
+        const code = compileBabel(content, pathname, ['NODE_ENV'], true);
 
         fs.writeFileSync(
           outPath,
@@ -227,12 +227,12 @@ const buildStatic = async () => {
           encoding: 'utf8',
         });
 
-        const code = compileBabel(content, pathname, [
-          'NODE_ENV',
-          'PORT',
-          'URL',
-          'API_URL',
-        ]);
+        const code = compileBabel(
+          content,
+          pathname,
+          ['NODE_ENV', 'PORT', 'URL', 'API_URL'],
+          false
+        );
 
         fs.writeFileSync(outPath, code, { encoding: 'utf8' });
       }
@@ -249,12 +249,12 @@ const buildStatic = async () => {
         encoding: 'utf8',
       });
 
-      const code = compileBabel(content, pathname, [
-        'NODE_ENV',
-        'PORT',
-        'URL',
-        'API_URL',
-      ]);
+      const code = compileBabel(
+        content,
+        pathname,
+        ['NODE_ENV', 'PORT', 'URL', 'API_URL'],
+        false
+      );
 
       fs.writeFileSync(outPath, code, { encoding: 'utf8' });
     })

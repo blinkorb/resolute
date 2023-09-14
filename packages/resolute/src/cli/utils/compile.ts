@@ -61,7 +61,8 @@ export const compileTypeScript = (
 export const compileBabel = (
   content: string,
   pathname: string,
-  envVars: readonly string[]
+  envVars: readonly string[],
+  commonjs: boolean
 ) => {
   const babelResult = transformSync(content, {
     filename: pathname,
@@ -71,7 +72,7 @@ export const compileBabel = (
         { include: envVars },
       ],
       require.resolve('babel-plugin-minify-dead-code-elimination'),
-      require.resolve('babel-plugin-transform-commonjs'),
+      ...(commonjs ? [require.resolve('babel-plugin-transform-commonjs')] : []),
     ],
     minified: true,
     sourceMaps: 'inline',

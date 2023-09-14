@@ -131,7 +131,7 @@ const buildStatic = async () => {
       //   `${path.basename(dep.resolved)}.map`;
       process.env.NODE_ENV = 'production';
 
-      const code = compileBabel(content, dep.resolved, ['NODE_ENV']);
+      const code = compileBabel(content, dep.resolved, ['NODE_ENV'], true);
 
       fs.writeFileSync(
         outPath,
