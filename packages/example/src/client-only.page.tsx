@@ -6,7 +6,13 @@ export const title = 'Client Only';
 const ClientOnly = () => {
   const isClientRender = useIsClientRender();
 
-  return isClientRender ? null : <p>{"I don't exist on the client"}</p>;
+  return (
+    <p>
+      {isClientRender
+        ? 'I only exist on the client'
+        : "I don't exist on the client"}
+    </p>
+  );
 };
 
 export default ClientOnly;
