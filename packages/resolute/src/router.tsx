@@ -1,6 +1,6 @@
 import React, { createContext, ReactNode, useContext, useMemo } from 'react';
 
-import { withLeadingAndTrailingSlash } from './cli/utils/paths.js';
+import { withLeadingAndTrailingSlash } from './utils/paths.js';
 
 export interface LocationInfo {
   hash: string;

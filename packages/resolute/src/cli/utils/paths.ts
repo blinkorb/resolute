@@ -1,5 +1,6 @@
 import path from 'node:path';
 
+import { withLeadingAndTrailingSlash } from '../../utils/paths.js';
 import { SERVER_PATHNAME, SRC_PATHNAME } from '../constants.js';
 
 export const fromServerPathToRelativeTSX = (pathname: string) =>
@@ -7,12 +8,6 @@ export const fromServerPathToRelativeTSX = (pathname: string) =>
     SRC_PATHNAME,
     path.relative(SERVER_PATHNAME, pathname).replace(/\.js$/, '.tsx')
   );
-
-export const withLeadingSlash = (pathname: string) =>
-  pathname.replace(/^(\.?\/)?/, '/');
-
-export const withLeadingAndTrailingSlash = (pathname: string) =>
-  pathname.replace(/^(\.?\/)?/, '/').replace(/\/?$/, '/');
 
 export const pathnameToRoute = (pathname: string) =>
   path
