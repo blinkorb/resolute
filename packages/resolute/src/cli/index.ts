@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#! /usr/bin/env node --enable-source-maps
 
 import { collect, Command, Help, KWArg, Program, RequireAny } from 'jargs';
 
