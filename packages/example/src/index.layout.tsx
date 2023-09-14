@@ -9,7 +9,7 @@ const Layout = ({
     <header>
       <ul>
         <li>
-          <a href="/">Home</a>
+          <a href="/">Home (static)</a>
         </li>
         <li>
           <a href="/events">Events (hydrated)</a>
@@ -21,7 +21,7 @@ const Layout = ({
           <a href="/counter">Counter (avoid hydration)</a>
         </li>
         <li>
-          <a href="/client-only">Client Only</a>
+          <a href="/client-only">Client Only Content</a>
         </li>
         <li>
           <a href="/nested-layout">Nested Layout</a>
