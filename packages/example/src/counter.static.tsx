@@ -12,7 +12,8 @@ const Counter = ({ foo }: StaticProps) => {
   return (
     <div>
       <p>{foo}</p>
-      <p>Count: 0</p>
+      <p>Count: {0}</p>
+      <button>+</button>
     </div>
   );
 };
