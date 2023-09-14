@@ -63,6 +63,10 @@ type RouteMappingWithLayoutInfo = Record<string, RouteInfoWithLayoutInfo>;
 type RouteMapping = Record<string, RouteInfo>;
 
 const buildStatic = async () => {
+  // eslint-disable-next-line no-console
+  console.log('Building...');
+
+  const startTime = Date.now();
   // Set environment variables
   process.env.NODE_ENV = 'production';
   process.env.PORT = process.env.PORT || '3000';
@@ -402,7 +406,7 @@ const buildStatic = async () => {
 
   const expressServer = app.listen(process.env.PORT, async () => {
     await Promise.all(
-      Object.entries(routeMappingWithLayouts).map(async ([, info]) => {
+      Object.entries(routeMappingWithLayouts).map(async ([route, info]) => {
         const pathname = info.static || info.page!;
         const pageModule = await getModule(pathname);
         const pageProps = await getProps(pageModule, pathname);
@@ -468,29 +472,44 @@ const buildStatic = async () => {
           .join('\n');
 
         // Construct import map
-        const importMap = JSON.stringify(
-          nodeModuleDependencies
+        const importMap = JSON.stringify({
+          imports: nodeModuleDependencies
             .filter((dep) => !MATCHES_LOCAL.test(dep.module))
             .reduce(
               (acc, dep) => {
                 return {
                   ...acc,
-                  [`${dep.module}@${nodeModulesVersionMap[dep.module]}`]:
-                    toStaticNodeModulePath(dep.resolved, nodeModulesVersionMap),
+                  [dep.module]: `/${toStaticNodeModulePath(
+                    dep.resolved,
+                    nodeModulesVersionMap
+                  )}`,
                 };
               },
               {
                 '@blinkorb/resolute': `/node-modules/@blinkorb/resolute@${RESOLUTE_VERSION}/index.js`,
               }
-            )
-        );
+            ),
+        });
 
-        console.log(head, body, importMap);
+        const html = `<!DOCTYPE html><html><head>${head}</head><script type="importmap">${importMap}</script><script defer type="module" src="/node-modules/@blinkorb/resolute@${RESOLUTE_VERSION}/client.js"></script><body>${body}</body></html>\n`;
+
+        const outFile = path.resolve(
+          STATIC_PATHNAME,
+          route.replace(/^\/?/, ''),
+          'index.html'
+        );
+        const ourDir = path.dirname(outFile);
+
+        // Output html
+        mkdirpSync(ourDir);
+        fs.writeFileSync(outFile, html, { encoding: 'utf8' });
       })
     );
 
     // eslint-disable-next-line no-console
-    console.log('Closing...');
+    console.log(
+      `Built in ${((Date.now() - startTime) / 1000).toFixed(2)}s\nClosing...`
+    );
     expressServer.close();
   });
 };
