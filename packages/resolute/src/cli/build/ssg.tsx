@@ -140,9 +140,8 @@ const buildStatic = async () => {
   });
 
   // Get all non-resolute resolute dependencies
-  const { list: resoluteDependencies } = await getAllDependencies(
-    resoluteFiles
-  );
+  const { list: resoluteDependencies } =
+    await getAllDependencies(resoluteFiles);
   const nonResoluteResoluteDependencies = resoluteDependencies.filter(
     (dep) =>
       !MATCHES_RESOLUTE.test(dep.module) && !MATCHES_RESOLUTE.test(dep.resolved)
