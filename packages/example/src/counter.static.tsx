@@ -12,6 +12,7 @@ const Counter = ({ foo }: StaticProps) => {
   return (
     <div>
       <p>{foo}</p>
+      <p>{"I don't exist on the client"}</p>
       <p>Count: {0}</p>
       <button>+</button>
     </div>
