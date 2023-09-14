@@ -12,13 +12,13 @@ const Layout = ({
           <a href="/">Home</a>
         </li>
         <li>
-          <a href="/events">Events</a>
+          <a href="/events">Events (hydrated)</a>
         </li>
         <li>
           <a href="/about">About</a>
         </li>
         <li>
-          <a href="/counter">Counter</a>
+          <a href="/counter">Counter (avoid hydration)</a>
         </li>
         <li>
           <a href="/client-only">Client Only</a>

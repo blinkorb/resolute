@@ -1,6 +1,8 @@
 import { useIsClientRender } from '@blinkorb/resolute';
 import React from 'react';
 
+export const title = 'Client Only';
+
 const ClientOnly = () => {
   const isClientRender = useIsClientRender();
 

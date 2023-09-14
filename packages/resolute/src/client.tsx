@@ -1,5 +1,5 @@
 import React, { ReactElement } from 'react';
-import { hydrateRoot } from 'react-dom/client';
+import { createRoot, hydrateRoot } from 'react-dom/client';
 
 import Page from './page.js';
 import { ResoluteJSON } from './types.js';
@@ -47,10 +47,16 @@ if ('client' in resoluteClientJson) {
     Promise.resolve(element)
   );
 
-  hydrateRoot(
-    window.document.body,
+  const page = (
     <Page pageModule={clientModule} pathname={client.pathname}>
       {withLayouts}
     </Page>
   );
+
+  if (clientModule.hydrate === false) {
+    const root = createRoot(window.document.body);
+    root.render(page);
+  } else {
+    hydrateRoot(window.document.body, page);
+  }
 }
