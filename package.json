@@ -7,7 +7,7 @@
     "typecheck": "tsc --noEmit",
     "format-check": "prettier --check 'packages/**/*'",
     "format": "prettier --write 'packages/**/*'",
-    "lint": "eslint 'packages/**/*.{ts,tsx,js,jsx}'",
+    "lint": "eslint 'packages/*/src/**/*.{ts,tsx,js,jsx}'",
     "tests": "jest --coverage --runInBand",
     "test": "npm run format-check && npm run typecheck && npm run lint && npm run tests"
   },
