@@ -1,3 +1,4 @@
+import { Link } from '@blinkorb/resolute';
 import React, { ReactNode } from 'react';
 
 const Layout = ({
@@ -9,25 +10,25 @@ const Layout = ({
     <header>
       <ul>
         <li>
-          <a href="/">Home (static)</a>
+          <Link href="/">Home (static)</Link>
         </li>
         <li>
-          <a href="/events">Events (hydrated)</a>
+          <Link href="/events">Events (hydrated)</Link>
         </li>
         <li>
-          <a href="/about">About (overridden layout)</a>
+          <Link href="/about">About (overridden layout)</Link>
         </li>
         <li>
-          <a href="/counter">Counter (avoid hydration)</a>
+          <Link href="/counter">Counter (avoid hydration)</Link>
         </li>
         <li>
-          <a href="/client-only">Client Only Content</a>
+          <Link href="/client-only">Client Only Content</Link>
         </li>
         <li>
-          <a href="/nested-layout">Nested Layout</a>
+          <Link href="/nested-layout">Nested Layout</Link>
         </li>
         <li>
-          <a href="/some-path">Hidden Route</a>
+          <Link href="/some-path">Hidden Route</Link>
         </li>
       </ul>
     </header>

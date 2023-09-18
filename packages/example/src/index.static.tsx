@@ -1,4 +1,4 @@
-import { createAPI, GetPropsResult } from '@blinkorb/resolute';
+import { createAPI, GetPropsResult, Link } from '@blinkorb/resolute';
 import React from 'react';
 
 const fetch = createAPI<typeof import('./index.api.js')>('/');
@@ -16,7 +16,7 @@ const Home = ({ about, events }: GetPropsResult<typeof getProps>) => {
         {events.results.map((event) => (
           <li key={event.slug}>
             <h2>
-              <a href={`/events/${event.slug}`}>{event.title}</a>
+              <Link href={`/events/${event.slug}`}>{event.title}</Link>
             </h2>
             <p>{event.date}</p>
           </li>
@@ -24,7 +24,7 @@ const Home = ({ about, events }: GetPropsResult<typeof getProps>) => {
       </ol>
       {events.count > events.results.length && (
         <p>
-          <a href="/events">View all events</a>
+          <Link href="/events">View all events</Link>
         </p>
       )}
     </>
