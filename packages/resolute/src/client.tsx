@@ -159,7 +159,7 @@ const loadPage = async (location: Location) => {
             router.navigate(newLocation.href, undefined, {
               hard: link.dataset.hard === 'true',
               replace: link.dataset.replace === 'true',
-              scrollToTop: link.dataset.scrollToTop === 'true',
+              scrollToTop: link.dataset.scrollToTop !== 'false',
             });
           }
         },
