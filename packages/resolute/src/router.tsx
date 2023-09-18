@@ -6,6 +6,7 @@ import {
   NavigateOptions,
   RouterContextState,
 } from './types.js';
+import { getLocationInfo } from './utils/location.js';
 
 export const RouteContext = createContext<RouterContextState | null>(null);
 
@@ -24,12 +25,15 @@ const RouterProvider = ({
           state?: AnyObject,
           options?: NavigateOptions
         ) => {
-          if (options?.hard) {
-            window.location.href = pathname;
-          } else if (options?.replace) {
-            globalThis.history.replaceState(state, '', pathname);
+          const newLocation = getLocationInfo(pathname);
+          if (!options?.hard && newLocation.origin === location.origin) {
+            if (options?.replace) {
+              globalThis.history.replaceState(state, '', pathname);
+            } else {
+              globalThis.history.pushState(state, '', pathname);
+            }
           } else {
-            globalThis.history.pushState(state, '', pathname);
+            window.location.href = pathname;
           }
 
           if (options?.scrollToTop !== false) {
@@ -64,7 +68,7 @@ const RouterProvider = ({
       go: throwHistoryError,
       back: throwHistoryError,
     };
-  }, []);
+  }, [location.origin]);
 
   const routeContext = useMemo(
     () => ({

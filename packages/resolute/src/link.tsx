@@ -1,8 +1,7 @@
 import React, { HTMLAttributes, MouseEvent, useCallback } from 'react';
 
-import { useLocation, useRouter } from './hooks.js';
+import { useRouter } from './hooks.js';
 import { AnyObject, NavigateOptions } from './types.js';
-import { getLocationInfo } from './utils/location.js';
 
 export interface LinkProps
   extends HTMLAttributes<HTMLAnchorElement>,
@@ -23,39 +22,22 @@ const Link = ({
   children,
   ...props
 }: LinkProps) => {
-  const router = useRouter();
-  const location = useLocation();
+  const { navigate } = useRouter();
 
   const onClickWrapper = useCallback(
     async (event: MouseEvent<HTMLAnchorElement>) => {
-      const newLocation = getLocationInfo(href);
-
-      if (
-        !hard &&
-        target !== '_blank' &&
-        newLocation.origin === location.origin
-      ) {
+      if (!hard && target !== '_blank') {
         event.preventDefault();
         await onClick?.(event);
 
-        router.navigate(href, state, {
+        navigate(href, state, {
           hard,
           replace,
           scrollToTop,
         });
       }
     },
-    [
-      href,
-      hard,
-      target,
-      location.origin,
-      onClick,
-      replace,
-      scrollToTop,
-      router,
-      state,
-    ]
+    [href, hard, target, onClick, replace, scrollToTop, navigate, state]
   );
 
   return (
