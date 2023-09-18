@@ -10,7 +10,7 @@ export const title = 'Home';
 const Home = ({ about, events }: GetPropsResult<typeof getProps>) => {
   return (
     <>
-      <h1>About</h1>
+      <h1>Home</h1>
       <p>{about.content}</p>
       <ol>
         {events.results.map((event) => (
