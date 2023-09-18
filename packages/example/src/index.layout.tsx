@@ -13,7 +13,7 @@ const Layout = ({
           <Link href="/">Home (static)</Link>
         </li>
         <li>
-          <Link href="/events">Events (hydrated)</Link>
+          <Link href="/events">Events (hydrated async)</Link>
         </li>
         <li>
           <Link href="/about">About (overridden layout)</Link>
@@ -22,7 +22,7 @@ const Layout = ({
           <Link href="/counter">Counter (avoid hydration)</Link>
         </li>
         <li>
-          <Link href="/client-only">Client Only Content</Link>
+          <Link href="/client-only">Client Only Content (hydrated)</Link>
         </li>
         <li>
           <Link href="/nested-layout">Nested Layout (no title)</Link>
