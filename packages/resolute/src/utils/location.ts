@@ -1,8 +1,11 @@
 import { AnyObject, LocationInfo, NavigateOptions } from '../types.js';
 import { withLeadingAndTrailingSlash } from './paths.js';
 
-export const getLocationInfo = (href: string): LocationInfo => {
-  const url = new URL(href);
+export const getLocationInfo = (
+  href: string,
+  origin?: string
+): LocationInfo => {
+  const url = new URL(href, origin);
 
   return {
     hash: url.hash,
@@ -29,7 +32,7 @@ export const getRouter = (
     state?: AnyObject,
     options?: NavigateOptions
   ) => {
-    const newLocation = getLocationInfo(pathname);
+    const newLocation = getLocationInfo(pathname, origin);
     if (!options?.hard && newLocation.origin === origin) {
       if (options?.replace) {
         history.replaceState(state, '', pathname);
