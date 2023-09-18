@@ -430,17 +430,18 @@ const buildStatic = async () => {
         const pathname = info.static || info.page!;
         const pageModule = await getModule(pathname);
         const pageProps = await getProps(pageModule, pathname);
+        const withInjectedProps = getInjectedProps(
+          pageModule,
+          pathname,
+          href,
+          pageProps,
+          undefined,
+          'static'
+        );
         const element = await getModuleElement(
           pageModule,
           fromServerPathToRelativeTSX(pathname),
-          getInjectedProps(
-            pageModule,
-            pathname,
-            href,
-            pageProps,
-            undefined,
-            'static'
-          )
+          withInjectedProps
         );
 
         // Wrap page with layouts
@@ -485,11 +486,7 @@ const buildStatic = async () => {
 
         // Render page
         const body = renderToString(
-          <Page
-            pageModule={pageModule}
-            pathname={fromServerPathToRelativeTSX(pathname)}
-            href={href}
-          >
+          <Page href={href} meta={withInjectedProps.meta}>
             {withLayouts}
           </Page>
         );

@@ -29,18 +29,18 @@ if ('client' in resoluteClientJson) {
   const { href } = globalThis.location;
   const pageModule = await getModule(client.pathname);
   const props = await getProps(pageModule, client.pathname);
-  const allProps = staticInfo.props ? { ...staticInfo.props, ...props } : props;
+  const withInjectedProps = getInjectedProps(
+    pageModule,
+    toTSX(client.pathname),
+    href,
+    staticInfo.props ? { ...staticInfo.props, ...props } : props,
+    undefined,
+    'client'
+  );
   const element = await getModuleElement(
     pageModule,
     client.pathname,
-    getInjectedProps(
-      pageModule,
-      toTSX(client.pathname),
-      href,
-      allProps,
-      undefined,
-      'client'
-    )
+    withInjectedProps
   );
 
   const withLayouts = await client.layouts.reduce<Promise<ReactElement>>(
@@ -67,11 +67,7 @@ if ('client' in resoluteClientJson) {
   );
 
   const page = (
-    <Page
-      pageModule={pageModule}
-      pathname={client.pathname}
-      href={globalThis.location.href}
-    >
+    <Page href={globalThis.location.href} meta={withInjectedProps.meta}>
       {withLayouts}
     </Page>
   );
