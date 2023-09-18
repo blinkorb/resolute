@@ -35,8 +35,25 @@ export interface LocationInfo {
   search: string;
 }
 
-export interface RouteInfo {
+export interface Router {
+  navigate: (
+    pathname: string,
+    state?: AnyObject,
+    options?: NavigateOptions
+  ) => void;
+  go: (delta: number) => void;
+  back: () => void;
+}
+
+export interface NavigateOptions {
+  hard?: boolean;
+  replace?: boolean;
+  scrollToTop?: boolean;
+}
+
+export interface RouterContextState {
   location: LocationInfo;
+  router: Router;
 }
 
 export interface InjectedPageProps {

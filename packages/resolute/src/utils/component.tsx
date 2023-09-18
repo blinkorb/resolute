@@ -1,6 +1,5 @@
 import React, { isValidElement, ReactNode } from 'react';
 
-import { getLocationInfo } from '../router.js';
 import {
   AssertUnknownObject,
   AsyncComponent,
@@ -9,6 +8,7 @@ import {
   Renderer,
   UnknownObject,
 } from '../types.js';
+import { getLocationInfo } from './location.js';
 import { getPageMeta } from './meta.js';
 
 export const isComponentLike = <P extends InjectedPageProps>(

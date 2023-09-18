@@ -1,20 +1,20 @@
 import React, { ReactNode } from 'react';
 import { Helmet } from 'react-helmet';
 
-import Router from './router.js';
-import { PageMeta } from './types.js';
+import RouterProvider from './router.js';
+import { LocationInfo, PageMeta } from './types.js';
 
 export interface PageProps {
-  href: string;
+  location: LocationInfo;
   meta: PageMeta;
   children?: ReactNode | readonly ReactNode[];
 }
 
-const Page = ({ href, meta, children }: PageProps) => (
-  <Router href={href}>
+const Page = ({ location, meta, children }: PageProps) => (
+  <RouterProvider location={location}>
     <Helmet>{!!meta.title && <title>{meta.title}</title>}</Helmet>
     {children}
-  </Router>
+  </RouterProvider>
 );
 
 export default Page;

@@ -1,40 +1,77 @@
-import React, { createContext, ReactNode, useContext, useMemo } from 'react';
+import React, { createContext, ReactNode, useMemo } from 'react';
 
-import { LocationInfo, RouteInfo } from './types.js';
-import { withLeadingAndTrailingSlash } from './utils/paths.js';
+import {
+  AnyObject,
+  LocationInfo,
+  NavigateOptions,
+  RouterContextState,
+} from './types.js';
 
-export const getLocationInfo = (href: string): LocationInfo => {
-  const url = new URL(href);
+export const RouteContext = createContext<RouterContextState | null>(null);
 
-  return {
-    hash: url.hash,
-    host: url.host,
-    hostname: url.hostname,
-    href: url.href,
-    origin: url.origin,
-    pathname: withLeadingAndTrailingSlash(url.pathname),
-    port: url.port,
-    protocol: url.protocol,
-    search: url.search,
-  };
-};
-
-const RouteContext = createContext<RouteInfo | null>(null);
-
-const Router = ({
-  href,
+const RouterProvider = ({
+  location,
   children,
 }: {
-  href: string;
+  location: LocationInfo;
   children?: ReactNode | readonly ReactNode[];
 }) => {
-  const location = useMemo(() => getLocationInfo(href), [href]);
+  const router = useMemo(() => {
+    if (globalThis.history) {
+      return {
+        navigate: (
+          pathname: string,
+          state?: AnyObject,
+          options?: NavigateOptions
+        ) => {
+          if (options?.hard) {
+            window.location.href = pathname;
+          } else if (options?.replace) {
+            globalThis.history.replaceState(state, '', pathname);
+          } else {
+            globalThis.history.pushState(state, '', pathname);
+          }
+
+          if (options?.scrollToTop !== false) {
+            globalThis.scrollTo(0, 0);
+          }
+        },
+        go: (delta: number, options?: Pick<NavigateOptions, 'scrollToTop'>) => {
+          globalThis.history.go(delta);
+
+          if (options?.scrollToTop !== false) {
+            globalThis.scrollTo(0, 0);
+          }
+        },
+        back: (options?: Pick<NavigateOptions, 'scrollToTop'>) => {
+          globalThis.history.back();
+
+          if (options?.scrollToTop !== false) {
+            globalThis.scrollTo(0, 0);
+          }
+        },
+      };
+    }
+
+    const throwHistoryError = () => {
+      throw new Error(
+        'The history API is not available in this context. Do not attempt navigation in a ssg/ssr context.'
+      );
+    };
+
+    return {
+      navigate: throwHistoryError,
+      go: throwHistoryError,
+      back: throwHistoryError,
+    };
+  }, []);
 
   const routeContext = useMemo(
     () => ({
       location,
+      router,
     }),
-    [location]
+    [location, router]
   );
 
   return (
@@ -44,16 +81,4 @@ const Router = ({
   );
 };
 
-export default Router;
-
-export const useRouter = () => {
-  const routeContext = useContext(RouteContext);
-
-  if (!routeContext) {
-    throw new Error('Cannot access router information outside of a router');
-  }
-
-  return routeContext;
-};
-
-export const useLocation = () => useRouter().location;
+export default RouterProvider;

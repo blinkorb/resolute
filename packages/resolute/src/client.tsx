@@ -67,7 +67,7 @@ if ('client' in resoluteClientJson) {
   );
 
   const page = (
-    <Page href={globalThis.location.href} meta={withInjectedProps.meta}>
+    <Page location={withInjectedProps.location} meta={withInjectedProps.meta}>
       {withLayouts}
     </Page>
   );

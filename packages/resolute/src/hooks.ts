@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 
-export const useIsClientRender = () => {
+import { RouteContext } from './router.js';
+
+const useIsClientRender = () => {
   const [state, setState] = useState(false);
 
   useEffect(() => {
@@ -11,3 +13,24 @@ export const useIsClientRender = () => {
 
   return state;
 };
+
+const useRouter = () => {
+  const routerContext = useContext(RouteContext);
+
+  if (!routerContext) {
+    throw new Error('Cannot access router information outside of a router');
+  }
+
+  return routerContext.router;
+};
+
+const useLocation = () => {
+  const routerContext = useContext(RouteContext);
+
+  if (!routerContext) {
+    throw new Error('Cannot access router information outside of a router');
+  }
+  return routerContext.location;
+};
+
+export { useIsClientRender, useRouter, useLocation };

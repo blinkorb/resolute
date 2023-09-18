@@ -4,7 +4,7 @@ import { MATCHES_TRAILING_SLASH } from './constants.js';
 import { RequestHandler, RequestOptions, ServerModule } from './types.js';
 import { toAPIPath } from './utils/paths.js';
 
-export const createAPI =
+const createAPI =
   <S extends ServerModule = never>(pathname: string) =>
   <K extends string & keyof S>(fn: K, options?: RequestOptions) => {
     const { queryParams, method, ...rest } = options || {};
@@ -32,3 +32,5 @@ export const createAPI =
       >;
     });
   };
+
+export { createAPI };

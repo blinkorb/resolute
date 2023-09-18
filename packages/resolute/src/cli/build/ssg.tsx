@@ -486,7 +486,10 @@ const buildStatic = async () => {
 
         // Render page
         const body = renderToString(
-          <Page href={href} meta={withInjectedProps.meta}>
+          <Page
+            location={withInjectedProps.location}
+            meta={withInjectedProps.meta}
+          >
             {withLayouts}
           </Page>
         );
