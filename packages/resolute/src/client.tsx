@@ -119,6 +119,8 @@ const loadPage = async (location: Location) => {
       </Page>
     );
 
+    globalThis.document.title = '';
+
     if (prevPage?.root) {
       prevPage.root.render(page);
     } else if (prevPage?.static || pageModule.hydrate === false) {

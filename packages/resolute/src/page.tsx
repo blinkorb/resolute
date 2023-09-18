@@ -13,7 +13,7 @@ export interface PageProps {
 
 const Page = ({ location, router, meta, children }: PageProps) => (
   <RouterProvider location={location} router={router}>
-    <Helmet>{!!meta.title && <title>{meta.title}</title>}</Helmet>
+    <Helmet>{meta.title ? <title>{meta.title}</title> : <title />}</Helmet>
     {children}
   </RouterProvider>
 );
