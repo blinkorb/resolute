@@ -40,7 +40,7 @@ export const getRouter = (
         history.pushState(state, '', pathname);
       }
     } else {
-      window.location.href = pathname;
+      globalThis.location.href = pathname;
     }
 
     if (options?.scrollToTop !== false) {

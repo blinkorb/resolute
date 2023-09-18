@@ -1,5 +1,5 @@
 import React, { ReactElement } from 'react';
-import { createRoot, hydrateRoot } from 'react-dom/client';
+import { createRoot, hydrateRoot, Root } from 'react-dom/client';
 
 import { MATCHES_TRAILING_SLASH } from './constants.js';
 import Page from './page.js';
@@ -36,11 +36,21 @@ const history = {
   },
 };
 
+interface ClientRenderer {
+  root: Root;
+  static?: false;
+}
+
+interface StaticRenderer {
+  root?: undefined;
+  static: true;
+}
+
+let prevPage: ClientRenderer | StaticRenderer | undefined;
+
 const loadPage = async (location: Location) => {
   const resoluteClientJson: PageDataJSON = await fetch(
-    `${window.location.protocol}//${
-      window.location.host
-    }${window.location.pathname.replace(
+    `${location.protocol}//${location.host}${location.pathname.replace(
       MATCHES_TRAILING_SLASH,
       ''
     )}/resolute.json`
@@ -50,7 +60,7 @@ const loadPage = async (location: Location) => {
     }
 
     throw new Error(
-      `Failed to fetch resolute.json for route ${window.location.pathname}`
+      `Failed to fetch resolute.json for route ${location.pathname}`
     );
   });
 
@@ -107,13 +117,30 @@ const loadPage = async (location: Location) => {
       </Page>
     );
 
-    if (pageModule.hydrate === false) {
-      const root = createRoot(window.document.body);
+    if (prevPage?.root) {
+      prevPage.root.render(page);
+    } else if (prevPage?.static || pageModule.hydrate === false) {
+      const root = createRoot(globalThis.document.body);
       root.render(page);
+      prevPage = {
+        root,
+      };
     } else {
-      hydrateRoot(window.document.body, page);
+      prevPage = {
+        root: hydrateRoot(globalThis.document.body, page),
+      };
     }
+  } else if ('static' in resoluteClientJson) {
+    prevPage = {
+      static: true,
+    };
+  } else {
+    throw new Error('Invalid resolute.json');
   }
 };
 
-loadPage(window.location);
+globalThis.addEventListener('popstate', () => {
+  loadPage(globalThis.location);
+});
+
+loadPage(globalThis.location);

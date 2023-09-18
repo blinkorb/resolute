@@ -94,6 +94,7 @@
     "@typescript-eslint/no-shadow": 2,
     "no-restricted-globals": [
       "error",
+      "window",
       "postMessage",
       "blur",
       "focus",
