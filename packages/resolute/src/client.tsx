@@ -1,6 +1,7 @@
 import React, { ReactElement } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
 
+import { MATCHES_TRAILING_SLASH } from './constants.js';
 import Page from './page.js';
 import { PageDataJSON } from './types.js';
 import {
@@ -12,7 +13,12 @@ import { getModule } from './utils/module.js';
 import { toTSX } from './utils/paths.js';
 
 const resoluteClientJson: PageDataJSON = await fetch(
-  `${window.location.protocol}//${window.location.host}${window.location.pathname}/resolute.json`
+  `${window.location.protocol}//${
+    window.location.host
+  }${window.location.pathname.replace(
+    MATCHES_TRAILING_SLASH,
+    ''
+  )}/resolute.json`
 ).then((response) => {
   if (response.ok) {
     return response.json();
