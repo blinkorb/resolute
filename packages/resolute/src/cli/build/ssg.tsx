@@ -13,7 +13,7 @@ import { rimrafSync } from 'rimraf';
 import { MATCHES_TRAILING_SLASH } from '../../constants.js';
 import { RequestMethod } from '../../index.js';
 import Page from '../../page.js';
-import { LayoutJSON, ResoluteJSON } from '../../types.js';
+import { LayoutJSON, PageDataJSON } from '../../types.js';
 import { getModuleElement, getProps } from '../../utils/component.js';
 import { getPageMeta } from '../../utils/meta.js';
 import { getModule } from '../../utils/module.js';
@@ -540,7 +540,7 @@ const buildStatic = async () => {
             : {
                 static: { head, body },
               }
-        ) satisfies ResoluteJSON;
+        ) satisfies PageDataJSON;
 
         // Output json and html for page
         mkdirpSync(outDir);

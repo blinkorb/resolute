@@ -19,12 +19,39 @@ export interface PageMeta {
   title?: string;
 }
 
+export type Renderer = 'client' | 'static' | 'server';
+
+export interface LocationInfo {
+  hash: string;
+  host: string;
+  hostname: string;
+  href: string;
+  origin: string;
+  pathname: string;
+  port: string;
+  protocol: string;
+  search: string;
+}
+
+export interface RouteInfo {
+  location: LocationInfo;
+}
+
+export interface InjectedPageProps {
+  meta: PageMeta;
+  location: LocationInfo;
+  renderer: Renderer;
+  isClientRender: boolean;
+  isStaticRender: boolean;
+  isServerRender: boolean;
+}
+
 export interface LayoutJSON {
   pathname: string;
   props?: UnknownObject;
 }
 
-export interface ResoluteJSONClient {
+export interface PageDataJSONClient {
   client: {
     pathname: string;
     layouts: readonly LayoutJSON[];
@@ -35,14 +62,14 @@ export interface ResoluteJSONClient {
   };
 }
 
-export interface ResoluteJSONStatic {
+export interface PageDataJSONStatic {
   static: {
     head: string;
     body: string;
   };
 }
 
-export type ResoluteJSON = ResoluteJSONClient | ResoluteJSONStatic;
+export type PageDataJSON = PageDataJSONClient | PageDataJSONStatic;
 
 export type RequestMethod =
   | 'get'

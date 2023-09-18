@@ -2,11 +2,11 @@ import React, { ReactElement } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
 
 import Page from './page.js';
-import { ResoluteJSON } from './types.js';
+import { PageDataJSON } from './types.js';
 import { getModuleElement, getProps } from './utils/component.js';
 import { getModule } from './utils/module.js';
 
-const resoluteClientJson: ResoluteJSON = await fetch(
+const resoluteClientJson: PageDataJSON = await fetch(
   `${window.location.protocol}//${window.location.host}${window.location.pathname}/resolute.json`
 ).then((response) => {
   if (response.ok) {
