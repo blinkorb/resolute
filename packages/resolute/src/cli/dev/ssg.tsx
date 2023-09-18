@@ -10,7 +10,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { Helmet } from 'react-helmet';
 import { rimrafSync } from 'rimraf';
 
-import type { RequestMethod } from '../../index.js';
+import type { InjectedPageProps, RequestMethod } from '../../index.js';
 import { UnknownObject } from '../../types.js';
 import { getModuleElement, getProps } from '../../utils/component.js';
 import { assertModule, getModule } from '../../utils/module.js';
@@ -112,7 +112,12 @@ const serveStatic = async () => {
       const pathname = path.join(SRC_PATHNAME, client);
       const clientModule = await getModule(pathname);
       const props = await getProps(clientModule, pathname);
-      const element = getModuleElement(clientModule, pathname, props);
+      const element = getModuleElement(
+        clientModule,
+        pathname,
+        // HACK
+        props as unknown as InjectedPageProps
+      );
 
       const staticMarkup = renderToStaticMarkup(
         <>

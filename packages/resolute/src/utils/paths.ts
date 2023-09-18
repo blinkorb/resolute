@@ -20,3 +20,5 @@ export const toAPIPath = (pathname: string, fn: string) => {
 
   return result.replace(/\/?$/, `/${fn}`);
 };
+
+export const toTSX = (pathname: string) => pathname.replace(/\.js$/, '.tsx');

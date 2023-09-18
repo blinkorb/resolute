@@ -14,7 +14,11 @@ import { MATCHES_TRAILING_SLASH } from '../../constants.js';
 import { RequestMethod } from '../../index.js';
 import Page from '../../page.js';
 import { LayoutJSON, PageDataJSON } from '../../types.js';
-import { getModuleElement, getProps } from '../../utils/component.js';
+import {
+  getInjectedProps,
+  getModuleElement,
+  getProps,
+} from '../../utils/component.js';
 import { getPageMeta } from '../../utils/meta.js';
 import { getModule } from '../../utils/module.js';
 import { toAPIPath } from '../../utils/paths.js';
@@ -116,7 +120,7 @@ const buildStatic = async () => {
   );
 
   // Get all non-resolute client dependencies
-  const { list: clientDependencies, modules: clientModules } =
+  const { list: clientDependencies, modules: pageModules } =
     await getAllDependencies(clientFiles);
   const nonResoluteClientDependencies = clientDependencies.filter(
     (dep) =>
@@ -124,7 +128,7 @@ const buildStatic = async () => {
   );
 
   // Complain about server-side imports in client files
-  clientModules.forEach((mod) => {
+  pageModules.forEach((mod) => {
     mod.dependencies.forEach((dep) => {
       if (
         !MATCHES_NODE_MODULE.test(dep.resolved) &&
@@ -429,7 +433,14 @@ const buildStatic = async () => {
         const element = await getModuleElement(
           pageModule,
           fromServerPathToRelativeTSX(pathname),
-          pageProps
+          getInjectedProps(
+            pageModule,
+            pathname,
+            href,
+            pageProps,
+            undefined,
+            'static'
+          )
         );
 
         // Wrap page with layouts
@@ -446,8 +457,14 @@ const buildStatic = async () => {
             const layoutElement = await getModuleElement(
               layoutModule,
               fromServerPathToRelativeTSX(layout),
-              layoutProps,
-              acc.element
+              getInjectedProps(
+                layoutModule,
+                pathname,
+                href,
+                layoutProps,
+                acc.element,
+                'static'
+              )
             );
 
             return {

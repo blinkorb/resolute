@@ -3,8 +3,13 @@ import { createRoot, hydrateRoot } from 'react-dom/client';
 
 import Page from './page.js';
 import { PageDataJSON } from './types.js';
-import { getModuleElement, getProps } from './utils/component.js';
+import {
+  getInjectedProps,
+  getModuleElement,
+  getProps,
+} from './utils/component.js';
 import { getModule } from './utils/module.js';
+import { toTSX } from './utils/paths.js';
 
 const resoluteClientJson: PageDataJSON = await fetch(
   `${window.location.protocol}//${window.location.host}${window.location.pathname}/resolute.json`
@@ -21,13 +26,21 @@ const resoluteClientJson: PageDataJSON = await fetch(
 if ('client' in resoluteClientJson) {
   const { client, static: staticInfo } = resoluteClientJson;
 
-  const clientModule = await getModule(client.pathname);
-  const props = await getProps(clientModule, client.pathname);
+  const { href } = globalThis.location;
+  const pageModule = await getModule(client.pathname);
+  const props = await getProps(pageModule, client.pathname);
   const allProps = staticInfo.props ? { ...staticInfo.props, ...props } : props;
   const element = await getModuleElement(
-    clientModule,
+    pageModule,
     client.pathname,
-    allProps
+    getInjectedProps(
+      pageModule,
+      toTSX(client.pathname),
+      href,
+      allProps,
+      undefined,
+      'client'
+    )
   );
 
   const withLayouts = await client.layouts.reduce<Promise<ReactElement>>(
@@ -38,8 +51,14 @@ if ('client' in resoluteClientJson) {
       const layoutElement = await getModuleElement(
         layoutModule,
         layout.pathname,
-        layoutProps,
-        acc
+        getInjectedProps(
+          layoutModule,
+          toTSX(layout.pathname),
+          href,
+          layoutProps,
+          acc,
+          'client'
+        )
       );
 
       return layoutElement;
@@ -49,7 +68,7 @@ if ('client' in resoluteClientJson) {
 
   const page = (
     <Page
-      pageModule={clientModule}
+      pageModule={pageModule}
       pathname={client.pathname}
       href={globalThis.location.href}
     >
@@ -57,7 +76,7 @@ if ('client' in resoluteClientJson) {
     </Page>
   );
 
-  if (clientModule.hydrate === false) {
+  if (pageModule.hydrate === false) {
     const root = createRoot(window.document.body);
     root.render(page);
   } else {

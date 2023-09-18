@@ -1,18 +1,23 @@
 import React, { isValidElement, ReactNode } from 'react';
 
+import { getLocationInfo } from '../router.js';
 import {
   AssertUnknownObject,
   AsyncComponent,
   ComponentLike,
+  InjectedPageProps,
+  Renderer,
   UnknownObject,
 } from '../types.js';
+import { getPageMeta } from './meta.js';
 
-export const isComponentLike = (value: unknown): value is ComponentLike =>
-  typeof value === 'function';
+export const isComponentLike = <P extends InjectedPageProps>(
+  value: unknown
+): value is ComponentLike<P> => typeof value === 'function';
 
-export const isAsyncFunction = (
-  value: ComponentLike
-): value is AsyncComponent => {
+export const isAsyncFunction = <P extends InjectedPageProps>(
+  value: ComponentLike<P>
+): value is AsyncComponent<P> => {
   return value.constructor.name === 'AsyncFunction';
 };
 
@@ -22,9 +27,9 @@ export const AsyncComponentWrapper = ({
   children: ReactNode | readonly ReactNode[];
 }) => <>{children}</>;
 
-export const createElementAsync = async (
-  Comp: ComponentLike,
-  props: UnknownObject
+export const createElementAsync = async <P extends InjectedPageProps>(
+  Comp: ComponentLike<P>,
+  props: P
 ) => {
   if (isAsyncFunction(Comp)) {
     const element = await Comp(props);
@@ -45,49 +50,67 @@ export const assertProps: AssertUnknownObject = (props, pathname) => {
   }
 };
 
-export const getProps = async (
-  clientModule: UnknownObject,
-  pathname: string
+export const getInjectedProps = <P extends InjectedPageProps>(
+  pageModule: UnknownObject,
+  pathname: string,
+  href: string,
+  props: Omit<P, keyof InjectedPageProps>,
+  children: ReactNode | readonly ReactNode[] | undefined,
+  renderer: Renderer
 ) => {
-  if (!('getProps' in clientModule)) {
+  const meta = getPageMeta(pageModule, pathname);
+  const injectedProps: InjectedPageProps = {
+    meta,
+    location: getLocationInfo(href),
+    renderer,
+    isClientRender: renderer === 'client',
+    isStaticRender: renderer === 'static',
+    isServerRender: renderer === 'server',
+    children,
+  };
+
+  return {
+    ...props,
+    ...injectedProps,
+  } as P;
+};
+
+export const getProps = async (pageModule: UnknownObject, pathname: string) => {
+  if (!('getProps' in pageModule)) {
     return {};
   }
 
-  if (typeof clientModule.getProps !== 'function') {
+  if (typeof pageModule.getProps !== 'function') {
     throw new Error(
-      `Exported "getProps" must be a function in "${clientModule}"`
+      `Exported "getProps" must be a function in "${pageModule}"`
     );
   }
 
-  const props = await clientModule.getProps();
+  const props = await pageModule.getProps();
 
   assertProps(props, pathname);
 
   return props;
 };
 
-export const getModuleElement = async (
-  clientModule: UnknownObject,
+export const getModuleElement = async <P extends InjectedPageProps>(
+  pageModule: UnknownObject,
   pathname: string,
-  props: UnknownObject,
-  children?: readonly ReactNode[] | ReactNode
+  props: P
 ) => {
-  if (!('default' in clientModule)) {
+  if (!('default' in pageModule)) {
     throw new Error(`Must have a default export in "${pathname}"`);
   }
 
-  const { default: Comp } = clientModule;
+  const { default: Comp } = pageModule;
 
-  if (!isComponentLike(Comp)) {
+  if (!isComponentLike<P>(Comp)) {
     throw new Error(
       `Default export must be a React component in "${pathname}"`
     );
   }
 
-  const element: unknown = await createElementAsync(Comp, {
-    ...props,
-    children,
-  });
+  const element: unknown = await createElementAsync(Comp, props);
 
   if (!isValidElement(element)) {
     throw new Error(

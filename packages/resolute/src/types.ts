@@ -1,4 +1,4 @@
-import { ComponentType, ReactElement } from 'react';
+import { ComponentType, ReactElement, ReactNode } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyObject = Record<string, any>;
@@ -8,7 +8,9 @@ export type EmptyObject = Record<never, never>;
 export type AsyncComponent<P = EmptyObject> = (
   props: P
 ) => Promise<ReactElement>;
-export type ComponentLike = ComponentType | AsyncComponent;
+export type ComponentLike<P = EmptyObject> =
+  | ComponentType<P>
+  | AsyncComponent<P>;
 
 export type AssertUnknownObject = (
   module: unknown,
@@ -38,6 +40,7 @@ export interface RouteInfo {
 }
 
 export interface InjectedPageProps {
+  children?: ReactNode | readonly ReactNode[];
   meta: PageMeta;
   location: LocationInfo;
   renderer: Renderer;

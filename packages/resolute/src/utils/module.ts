@@ -13,9 +13,9 @@ export const assertModule: AssertUnknownObject = (module, pathname) => {
 };
 
 export const getModule = async (pathname: string) => {
-  const clientModule: unknown = await import(pathname);
+  const unknownModule: unknown = await import(pathname);
 
-  assertModule(clientModule, pathname);
+  assertModule(unknownModule, pathname);
 
-  return clientModule;
+  return unknownModule;
 };
