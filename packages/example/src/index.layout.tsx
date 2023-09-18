@@ -25,10 +25,10 @@ const Layout = ({
           <Link href="/client-only">Client Only Content</Link>
         </li>
         <li>
-          <Link href="/nested-layout">Nested Layout</Link>
+          <Link href="/nested-layout">Nested Layout (no title)</Link>
         </li>
         <li>
-          <Link href="/some-path">Hidden Route</Link>
+          <Link href="/some-path">Hidden Route (helmet title)</Link>
         </li>
       </ul>
     </header>
