@@ -17,7 +17,13 @@ export const getLocationInfo = (href: string): LocationInfo => {
   };
 };
 
-export const getRouter = (origin: string) => ({
+export const getRouter = (
+  origin: string,
+  history: Pick<
+    History,
+    'pushState' | 'replaceState' | 'go' | 'back' | 'forward'
+  >
+) => ({
   navigate: (
     pathname: string,
     state?: AnyObject,
@@ -26,9 +32,9 @@ export const getRouter = (origin: string) => ({
     const newLocation = getLocationInfo(pathname);
     if (!options?.hard && newLocation.origin === origin) {
       if (options?.replace) {
-        globalThis.history.replaceState(state, '', pathname);
+        history.replaceState(state, '', pathname);
       } else {
-        globalThis.history.pushState(state, '', pathname);
+        history.pushState(state, '', pathname);
       }
     } else {
       window.location.href = pathname;
@@ -39,14 +45,21 @@ export const getRouter = (origin: string) => ({
     }
   },
   go: (delta: number, options?: Pick<NavigateOptions, 'scrollToTop'>) => {
-    globalThis.history.go(delta);
+    history.go(delta);
 
     if (options?.scrollToTop !== false) {
       globalThis.scrollTo(0, 0);
     }
   },
   back: (options?: Pick<NavigateOptions, 'scrollToTop'>) => {
-    globalThis.history.back();
+    history.back();
+
+    if (options?.scrollToTop !== false) {
+      globalThis.scrollTo(0, 0);
+    }
+  },
+  forward: (options?: Pick<NavigateOptions, 'scrollToTop'>) => {
+    history.forward();
 
     if (options?.scrollToTop !== false) {
       globalThis.scrollTo(0, 0);

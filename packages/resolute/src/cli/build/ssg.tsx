@@ -484,10 +484,22 @@ const buildStatic = async () => {
           Promise.resolve({ element, layoutsJSON: [] })
         );
 
+        const throwNavigationError = () => {
+          throw new Error('You cannot navigate in an ssg/ssr context');
+        };
+
+        const router = {
+          navigate: throwNavigationError,
+          go: throwNavigationError,
+          back: throwNavigationError,
+          forward: throwNavigationError,
+        };
+
         // Render page
         const body = renderToString(
           <Page
             location={withInjectedProps.location}
+            router={router}
             meta={withInjectedProps.meta}
           >
             {withLayouts}
