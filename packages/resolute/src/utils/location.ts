@@ -32,7 +32,7 @@ export const getRouter = (
     state?: AnyObject,
     options?: NavigateOptions
   ) => {
-    const newLocation = getLocationInfo(pathname, origin);
+    const newLocation = new URL(pathname, origin);
     if (!options?.hard && newLocation.origin === origin) {
       if (options?.replace) {
         history.replaceState(state, '', pathname);

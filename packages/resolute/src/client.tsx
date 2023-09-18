@@ -64,6 +64,8 @@ const loadPage = async (location: Location) => {
     );
   });
 
+  const router = getRouter(location.origin, history);
+
   if ('client' in resoluteClientJson) {
     const { client, static: staticInfo } = resoluteClientJson;
 
@@ -110,7 +112,7 @@ const loadPage = async (location: Location) => {
     const page = (
       <Page
         location={withInjectedProps.location}
-        router={getRouter(location.origin, history)}
+        router={router}
         meta={withInjectedProps.meta}
       >
         {withLayouts}
@@ -131,9 +133,41 @@ const loadPage = async (location: Location) => {
       };
     }
   } else if ('static' in resoluteClientJson) {
+    if (prevPage?.root) {
+      prevPage.root.unmount();
+    }
+
+    if (prevPage) {
+      globalThis.document.head.innerHTML = resoluteClientJson.static.head;
+      globalThis.document.body.innerHTML = resoluteClientJson.static.body;
+    }
+
     prevPage = {
       static: true,
     };
+
+    const links = globalThis.document.getElementsByTagName('a');
+
+    for (const link of links) {
+      link.addEventListener(
+        'click',
+        (event) => {
+          const newLocation = new URL(link.href, location.origin);
+
+          if (link.dataset.hard !== 'true' && link.target !== '_blank') {
+            event.preventDefault();
+            router.navigate(newLocation.href, undefined, {
+              hard: link.dataset.hard === 'true',
+              replace: link.dataset.replace === 'true',
+              scrollToTop: link.dataset.scrollToTop === 'true',
+            });
+          }
+        },
+        {
+          passive: false,
+        }
+      );
+    }
   } else {
     throw new Error('Invalid resolute.json');
   }
