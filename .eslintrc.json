@@ -95,6 +95,7 @@
     "no-restricted-globals": [
       "error",
       "window",
+      "require",
       "postMessage",
       "blur",
       "focus",
