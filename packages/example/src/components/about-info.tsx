@@ -1,3 +1,5 @@
+import './about-info.scss';
+
 import React from 'react';
 
 const AboutInfo = ({ title, content }: { title: string; content: string }) => {
