@@ -26,7 +26,6 @@ import {
   MATCHES_CLIENT,
   MATCHES_LAYOUT,
   MATCHES_LOCAL,
-  MATCHES_MODULE_SCOPE_AND_NAME,
   MATCHES_NODE_MODULE,
   MATCHES_PAGE,
   MATCHES_RESOLUTE,
@@ -526,17 +525,9 @@ const buildStatic = async () => {
             .filter((dep) => !MATCHES_LOCAL.test(dep.module))
             .reduce(
               (acc, dep) => {
-                const match = MATCHES_MODULE_SCOPE_AND_NAME.exec(dep.module);
-
-                if (!match?.[1]) {
-                  // eslint-disable-next-line no-console
-                  console.error(`Could not parse module name: ${dep.module}`);
-                  return process.exit(1);
-                }
-
                 return {
                   ...acc,
-                  [match[1]]: `/${toStaticNodeModulePath(
+                  [dep.module]: `/${toStaticNodeModulePath(
                     dep.resolved,
                     nodeModulesVersionMap
                   )}`,
