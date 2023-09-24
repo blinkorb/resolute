@@ -1,6 +1,8 @@
 import { Link } from '@blinkorb/resolute';
 import React, { ReactNode } from 'react';
 
+import styles from './index.scss';
+
 const Layout = ({
   children,
 }: {
@@ -10,25 +12,39 @@ const Layout = ({
     <header>
       <ul>
         <li>
-          <Link href="/">Home (static)</Link>
+          <Link className={styles.link} href="/">
+            Home (static)
+          </Link>
         </li>
         <li>
-          <Link href="/events">Events (hydrated async)</Link>
+          <Link className={styles.link} href="/events">
+            Events (hydrated async)
+          </Link>
         </li>
         <li>
-          <Link href="/about">About (overridden layout)</Link>
+          <Link className={styles.link} href="/about">
+            About (overridden layout)
+          </Link>
         </li>
         <li>
-          <Link href="/counter">Counter (avoid hydration)</Link>
+          <Link className={styles.link} href="/counter">
+            Counter (avoid hydration)
+          </Link>
         </li>
         <li>
-          <Link href="/client-only">Client Only Content (hydrated)</Link>
+          <Link className={styles.link} href="/client-only">
+            Client Only Content (hydrated)
+          </Link>
         </li>
         <li>
-          <Link href="/nested-layout">Nested Layout (no title)</Link>
+          <Link className={styles.link} href="/nested-layout">
+            Nested Layout (no title)
+          </Link>
         </li>
         <li>
-          <Link href="/some-path">Hidden Route (helmet title)</Link>
+          <Link className={styles.link} href="/some-path">
+            Hidden Route (helmet title)
+          </Link>
         </li>
       </ul>
     </header>
