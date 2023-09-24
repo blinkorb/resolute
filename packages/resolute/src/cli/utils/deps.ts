@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 import { cruise, IDependency } from 'dependency-cruiser';
 
-import { MATCHES_LOCAL, MATCHES_NODE_MODULE_RELATIVE } from '../constants.js';
+import { MATCHES_LOCAL, MATCHES_MODULE_SCOPE_AND_NAME } from '../constants.js';
 
 export const getAllDependencies = async (pathnames: string[]) => {
   const dependencies = await cruise(pathnames, {
@@ -55,21 +55,25 @@ export const getVersionMap = (
   dependencies: IDependency[]
 ): Record<string, string> => {
   return dependencies
-    .filter(
-      (dep) =>
-        !MATCHES_LOCAL.test(dep.module) &&
-        !MATCHES_NODE_MODULE_RELATIVE.test(dep.module)
-    )
+    .filter((dep) => !MATCHES_LOCAL.test(dep.module))
     .reduce<Record<string, string>>((acc, dep) => {
+      const match = MATCHES_MODULE_SCOPE_AND_NAME.exec(dep.module);
+
+      if (!match?.[1]) {
+        // eslint-disable-next-line no-console
+        console.error(`Could not parse module name: ${dep.module}`);
+        return process.exit(1);
+      }
+
       const packagePath = dep.resolved.replace(
         /(\/node_modules\/)(@[\w-]+\/[\w-]+|[\w-]+)\/.*$/,
-        '$1$2/package.json'
+        `$1${match[1]}/package.json`
       );
 
       try {
         return {
           ...acc,
-          [dep.module]: readPackageJsonVersion(packagePath),
+          [match[1]]: readPackageJsonVersion(packagePath),
         };
       } catch (error) {
         // eslint-disable-next-line no-console
