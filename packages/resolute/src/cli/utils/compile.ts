@@ -1,9 +1,16 @@
 import { createRequire } from 'node:module';
+import path from 'node:path';
 
 import { transformSync } from '@babel/core';
 import ts from 'typescript';
 
+import { SERVER_PATHNAME } from '../constants.js';
+
 const require = createRequire(import.meta.url);
+
+const resolveResolute = path.dirname(
+  path.dirname(require.resolve('@blinkorb/resolute'))
+);
 
 export const compileTypeScript = (
   fileNames: string[],
@@ -62,16 +69,49 @@ export const compileBabel = (
   content: string,
   pathname: string,
   envVars: readonly string[],
-  commonjs: boolean
+  {
+    envAndDeadCode,
+    commonjs,
+    css,
+  }: {
+    envAndDeadCode: boolean;
+    commonjs: boolean;
+    css: boolean;
+  }
 ) => {
   const babelResult = transformSync(content, {
     filename: pathname,
     plugins: [
-      [
-        require.resolve('babel-plugin-transform-inline-environment-variables'),
-        { include: envVars },
-      ],
-      require.resolve('babel-plugin-minify-dead-code-elimination'),
+      ...(css
+        ? [
+            [
+              require.resolve('babel-plugin-css-modules-transform'),
+              {
+                preprocessCss: path.resolve(
+                  resolveResolute,
+                  'preprocess-css.cjs'
+                ),
+                extensions: ['.css', '.scss'],
+                extractCss: {
+                  dir: SERVER_PATHNAME,
+                  relativeRoot: SERVER_PATHNAME,
+                  filename: '[path]/[name].css',
+                },
+              },
+            ],
+          ]
+        : []),
+      ...(envAndDeadCode
+        ? [
+            [
+              require.resolve(
+                'babel-plugin-transform-inline-environment-variables'
+              ),
+              { include: envVars },
+            ],
+            require.resolve('babel-plugin-minify-dead-code-elimination'),
+          ]
+        : []),
       ...(commonjs ? [require.resolve('babel-plugin-transform-commonjs')] : []),
     ],
     minified: true,

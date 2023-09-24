@@ -87,6 +87,9 @@ const buildStatic = async () => {
   // Copy public files
   await cpy(PUBLIC_FILES_GLOB, STATIC_PATHNAME);
 
+  // Copy CSS files
+  await cpy(path.resolve(SRC_PATHNAME, '**/*.{css,scss}'), SERVER_PATHNAME);
+
   // Copy resolute files
   await cpy(
     path.resolve(RESOLUTE_PATHNAME, '**/*.js'),
@@ -162,7 +165,8 @@ const buildStatic = async () => {
 
   // Filter out node modules
   const clientLocalDependencies = uniqueDependencies.filter(
-    (dep) => !MATCHES_NODE_MODULE.test(dep.resolved)
+    (dep) =>
+      !MATCHES_NODE_MODULE.test(dep.resolved) && !/\.s?css$/.test(dep.resolved)
   );
 
   // Filter only node modules
@@ -187,7 +191,11 @@ const buildStatic = async () => {
           encoding: 'utf8',
         });
 
-        const code = compileBabel(content, pathname, ['NODE_ENV'], true);
+        const code = compileBabel(content, pathname, ['NODE_ENV'], {
+          envAndDeadCode: true,
+          commonjs: true,
+          css: false,
+        });
 
         fs.writeFileSync(
           outPath,
@@ -216,10 +224,38 @@ const buildStatic = async () => {
       })
   );
 
+  // Compile client modules in place with babel to handle CSS modules
+  await Promise.all(
+    [...clientFiles, ...clientLocalDependencies.map((dep) => dep.resolved)].map(
+      async (pathname) => {
+        const content = fs.readFileSync(pathname, {
+          encoding: 'utf8',
+        });
+
+        const code = compileBabel(
+          content,
+          pathname,
+          ['NODE_ENV', 'PORT', 'URL', 'API_URL'],
+          {
+            envAndDeadCode: false,
+            commonjs: false,
+            css: true,
+          }
+        );
+
+        fs.writeFileSync(pathname, code, { encoding: 'utf8' });
+      }
+    )
+  );
+
+  console.log('css modules transformed');
+
   // Compile client modules with babel to handle env vars and dead code elimination
   await Promise.all(
     [...clientFiles, ...clientLocalDependencies.map((dep) => dep.resolved)].map(
       async (pathname) => {
+        console.log(pathname);
+
         const outPath = path.resolve(
           STATIC_PATHNAME,
           path.relative(SERVER_PATHNAME, pathname)
@@ -234,13 +270,19 @@ const buildStatic = async () => {
           content,
           pathname,
           ['NODE_ENV', 'PORT', 'URL', 'API_URL'],
-          false
+          {
+            envAndDeadCode: true,
+            commonjs: false,
+            css: false,
+          }
         );
 
         fs.writeFileSync(outPath, code, { encoding: 'utf8' });
       }
     )
   );
+
+  console.log('babel compiled');
 
   // Compile resolute modules in place with babel to handle env vars and dead code elimination
   await Promise.all(
@@ -256,7 +298,11 @@ const buildStatic = async () => {
         content,
         pathname,
         ['NODE_ENV', 'PORT', 'URL', 'API_URL'],
-        false
+        {
+          envAndDeadCode: true,
+          commonjs: false,
+          css: false,
+        }
       );
 
       fs.writeFileSync(outPath, code, { encoding: 'utf8' });
