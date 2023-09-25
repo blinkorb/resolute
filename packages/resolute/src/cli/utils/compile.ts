@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 
-import { transformSync } from '@babel/core';
+import { PluginObj, transformSync } from '@babel/core';
+import t from '@babel/types';
 import ts from 'typescript';
 
 const require = createRequire(import.meta.url);
@@ -58,6 +59,42 @@ export const compileTypeScript = (
   }
 };
 
+const transformCommonjsToEsm: PluginObj = {
+  visitor: {
+    AssignmentExpression(path) {
+      const { left, right } = path.node;
+
+      if (
+        left.type === 'MemberExpression' &&
+        left.object.type === 'Identifier' &&
+        left.object.name === 'module' &&
+        left.property.type === 'Identifier' &&
+        left.property.name === 'exports'
+      ) {
+        if (
+          right.type === 'CallExpression' &&
+          right.callee.type === 'Identifier' &&
+          right.callee.name === 'require' &&
+          right.arguments.length === 1 &&
+          right.arguments[0]!.type === 'StringLiteral'
+        ) {
+          const requirePath = right.arguments[0]!.value;
+          const variableName = requirePath.replace(/[/.-]+/g, '_');
+
+          return path.replaceWithMultiple([
+            t.importDeclaration(
+              [t.importDefaultSpecifier(t.identifier(variableName))],
+              t.stringLiteral(requirePath)
+            ),
+            t.exportAllDeclaration(t.stringLiteral(requirePath)),
+            t.exportDefaultDeclaration(t.identifier(variableName)),
+          ]);
+        }
+      }
+    },
+  },
+};
+
 export const compileBabel = (
   content: string,
   pathname: string,
@@ -72,6 +109,7 @@ export const compileBabel = (
         { include: envVars },
       ],
       require.resolve('babel-plugin-minify-dead-code-elimination'),
+      ...(commonjs ? [transformCommonjsToEsm] : []),
       ...(commonjs ? [require.resolve('babel-plugin-transform-commonjs')] : []),
     ],
     minified: true,

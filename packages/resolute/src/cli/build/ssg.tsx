@@ -191,26 +191,20 @@ const buildStatic = async () => {
 
         fs.writeFileSync(
           outPath,
-          code
-            .replace(
-              // Hack to fix react imports
-              /(import\s+[\w]+\s+from\s*["']\.\/cjs\/react\.(production|development)\.min\.js["'];)/,
-              `$1export * from"./cjs/react.$2.min.js";`
-            )
-            .replace(
-              // Hack to fix relative imports that don't include a file extension
-              /from\s*["']([^"']*?)["'];/,
-              (match, importPath: string) => {
-                if (
-                  MATCHES_LOCAL.test(importPath) &&
-                  importPath.substring(importPath.length - 3) !== '.js'
-                ) {
-                  return `from"${importPath}.js";`;
-                }
-
-                return match;
+          code.replace(
+            // Hack to fix relative imports that don't include a file extension
+            /from\s*["']([^"']*?)["'];/,
+            (match, importPath: string) => {
+              if (
+                MATCHES_LOCAL.test(importPath) &&
+                importPath.substring(importPath.length - 3) !== '.js'
+              ) {
+                return `from"${importPath}.js";`;
               }
-            ),
+
+              return match;
+            }
+          ),
           { encoding: 'utf8' }
         );
       })
