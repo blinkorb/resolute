@@ -1,4 +1,6 @@
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import path from 'node:path';
 
 import { PluginObj, transformSync } from '@babel/core';
 import t from '@babel/types';
@@ -61,10 +63,13 @@ export const compileTypeScript = (
   }
 };
 
+const MATCHES_JS_EXTENSION = /\.[mc]?js$/;
+
 const transformCommonjsToEsm: PluginObj = {
   visitor: {
-    AssignmentExpression(path) {
-      const { left, right } = path.node;
+    AssignmentExpression(p) {
+      const { node } = p;
+      const { left, right } = node;
 
       if (
         left.type === 'MemberExpression' &&
@@ -83,7 +88,7 @@ const transformCommonjsToEsm: PluginObj = {
           const requirePath = right.arguments[0]!.value;
           const variableName = requirePath.replace(/[/.-]+/g, '_');
 
-          return path.replaceWithMultiple([
+          return p.replaceWithMultiple([
             t.importDeclaration(
               [t.importDefaultSpecifier(t.identifier(variableName))],
               t.stringLiteral(requirePath)
@@ -94,17 +99,64 @@ const transformCommonjsToEsm: PluginObj = {
         }
       }
     },
-    CallExpression(path) {
-      const { callee, arguments: args } = path.node;
+    CallExpression(p) {
+      const { node } = p;
+      const { callee, arguments: args } = node;
+
       if (
         callee.type === 'Identifier' &&
         callee.name === 'require' &&
         args.length === 1 &&
         args[0]!.type === 'StringLiteral' &&
         MATCHES_LOCAL.test(args[0]!.value) &&
-        !/\.[mc]?js$/.test(args[0]!.value)
+        !MATCHES_JS_EXTENSION.test(args[0]!.value)
       ) {
-        args[0].value += '.js';
+        if (!this.file.opts.filename) {
+          throw new Error(
+            `Could not get filename for require of "${args[0]!.value}"`
+          );
+        }
+
+        if (
+          fs.existsSync(
+            path.resolve(
+              path.dirname(this.file.opts.filename),
+              args[0]!.value + '.js'
+            )
+          )
+        ) {
+          args[0].value += '.js';
+        } else {
+          args[0].value += '/index.js';
+        }
+      }
+    },
+    ImportDeclaration(p) {
+      const { node } = p;
+
+      if (
+        node.source.type === 'StringLiteral' &&
+        MATCHES_LOCAL.test(node.source.value) &&
+        !MATCHES_JS_EXTENSION.test(node.source.value)
+      ) {
+        if (!this.file.opts.filename) {
+          throw new Error(
+            `Could not get filename for require of "${node.source.value}"`
+          );
+        }
+
+        if (
+          fs.existsSync(
+            path.resolve(
+              path.dirname(this.file.opts.filename),
+              node.source.value + '.js'
+            )
+          )
+        ) {
+          node.source.value += '.js';
+        } else {
+          node.source.value += '/index.js';
+        }
       }
     },
   },
