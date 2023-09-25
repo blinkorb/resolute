@@ -8,6 +8,7 @@ import { mkdirpSync } from 'mkdirp';
 import React, { ReactElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import { Helmet } from 'react-helmet';
+import { createGenerateId, JssProvider, SheetsRegistry } from 'react-jss';
 import { rimrafSync } from 'rimraf';
 
 import { MATCHES_TRAILING_SLASH } from '../../constants.js';
@@ -472,18 +473,24 @@ const buildStatic = async () => {
           forward: throwNavigationError,
         };
 
+        const sheets = new SheetsRegistry();
+        const generateId = createGenerateId();
+
         // Render page
         const body = renderToString(
-          <Page
-            location={withInjectedProps.location}
-            router={router}
-            meta={withInjectedProps.meta}
-          >
-            {withLayouts}
-          </Page>
+          <JssProvider registry={sheets} generateId={generateId}>
+            <Page
+              location={withInjectedProps.location}
+              router={router}
+              meta={withInjectedProps.meta}
+            >
+              {withLayouts}
+            </Page>
+          </JssProvider>
         );
 
         const helmet = Helmet.renderStatic();
+        const styles = `<style type="text/css" data-jss>${sheets.toString()}</style>`;
 
         // Collect head info from helmet
         const head = [
@@ -516,7 +523,7 @@ const buildStatic = async () => {
             ),
         });
 
-        const html = `<!DOCTYPE html><html><head>${head}</head><script type="importmap">${importMap}</script><script defer type="module" src="/node-modules/@blinkorb/resolute@${RESOLUTE_VERSION}/client.js"></script><body>${body}</body></html>\n`;
+        const html = `<!DOCTYPE html><html><head>${head}<script type="importmap">${importMap}</script><script defer type="module" src="/node-modules/@blinkorb/resolute@${RESOLUTE_VERSION}/client.js"></script>${styles}</head><body>${body}</body></html>\n`;
 
         const outFileHTML = path.resolve(
           STATIC_PATHNAME,
