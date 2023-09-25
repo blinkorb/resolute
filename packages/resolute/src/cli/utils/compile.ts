@@ -162,10 +162,16 @@ const transformCommonjsToEsm: PluginObj = {
         ) as t.ObjectProperty | undefined;
 
         if (getDef && getDef.value.type === 'FunctionExpression') {
+          if (p.parent.type !== 'ExpressionStatement') {
+            throw new Error(
+              `Expected Object.defineProperty to be in an ExpressionStatement`
+            );
+          }
+
           p.traverse({
             ReturnStatement(sp) {
               if (sp.node.argument?.type === 'MemberExpression') {
-                p.replaceWith(
+                p.parentPath.replaceWith(
                   t.exportNamedDeclaration(
                     t.variableDeclaration('const', [
                       t.variableDeclarator(
@@ -191,8 +197,14 @@ const transformCommonjsToEsm: PluginObj = {
             return;
           }
 
+          if (p.parent.type !== 'ExpressionStatement') {
+            throw new Error(
+              `Expected Object.defineProperty to be in an ExpressionStatement`
+            );
+          }
+
           if (valueDef.value.type === 'MemberExpression') {
-            p.replaceWith(
+            p.parentPath.replaceWith(
               t.exportNamedDeclaration(
                 t.variableDeclaration('const', [
                   t.variableDeclarator(
