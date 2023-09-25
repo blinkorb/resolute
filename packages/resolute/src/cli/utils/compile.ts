@@ -88,7 +88,7 @@ const transformCommonjsToEsm: PluginObj = {
           const requirePath = right.arguments[0]!.value;
           const variableName = requirePath.replace(/[/.-]+/g, '_');
 
-          return p.replaceWithMultiple([
+          p.replaceWithMultiple([
             t.importDeclaration(
               [t.importDefaultSpecifier(t.identifier(variableName))],
               t.stringLiteral(requirePath)
@@ -96,6 +96,7 @@ const transformCommonjsToEsm: PluginObj = {
             t.exportAllDeclaration(t.stringLiteral(requirePath)),
             t.exportDefaultDeclaration(t.identifier(variableName)),
           ]);
+          return;
         }
       }
     },
@@ -121,14 +122,91 @@ const transformCommonjsToEsm: PluginObj = {
           fs.existsSync(
             path.resolve(
               path.dirname(this.file.opts.filename),
-              args[0]!.value + '.js'
+              args[0].value + '.js'
             )
           )
         ) {
           args[0].value += '.js';
-        } else {
-          args[0].value += '/index.js';
+          return;
         }
+
+        args[0].value += '/index.js';
+        return;
+      }
+
+      const [first, second, third] = node.arguments;
+
+      if (
+        node.callee.type === 'MemberExpression' &&
+        node.callee.object.type === 'Identifier' &&
+        node.callee.object.name === 'Object' &&
+        node.callee.property.type === 'Identifier' &&
+        node.callee.property.name === 'defineProperty' &&
+        first?.type === 'Identifier' &&
+        first.name === 'exports' &&
+        second?.type === 'StringLiteral' &&
+        third?.type === 'ObjectExpression'
+      ) {
+        const valueDef = third.properties.find(
+          (n) =>
+            n.type === 'ObjectProperty' &&
+            n.key.type === 'Identifier' &&
+            n.key.name === 'value'
+        ) as t.ObjectProperty | undefined;
+
+        const getDef = third.properties.find(
+          (n) =>
+            n.type === 'ObjectProperty' &&
+            n.key.type === 'Identifier' &&
+            n.key.name === 'get'
+        ) as t.ObjectProperty | undefined;
+
+        if (getDef && getDef.value.type === 'FunctionExpression') {
+          p.traverse({
+            ReturnStatement(sp) {
+              if (sp.node.argument?.type === 'MemberExpression') {
+                p.replaceWith(
+                  t.exportNamedDeclaration(
+                    t.variableDeclaration('const', [
+                      t.variableDeclarator(
+                        t.identifier(second.value),
+                        sp.node.argument
+                      ),
+                    ])
+                  )
+                );
+                return;
+              }
+
+              throw new Error(
+                `Could not get value of getter for ${second.value}`
+              );
+            },
+          });
+          return;
+        }
+
+        if (valueDef) {
+          if (second.value === '__esModule') {
+            return;
+          }
+
+          if (valueDef.value.type === 'MemberExpression') {
+            p.replaceWith(
+              t.exportNamedDeclaration(
+                t.variableDeclaration('const', [
+                  t.variableDeclarator(
+                    t.identifier(second.value),
+                    valueDef.value
+                  ),
+                ])
+              )
+            );
+            return;
+          }
+        }
+
+        throw new Error(`Could not determine value for ${second.value}`);
       }
     },
     ImportDeclaration(p) {
@@ -154,9 +232,11 @@ const transformCommonjsToEsm: PluginObj = {
           )
         ) {
           node.source.value += '.js';
-        } else {
-          node.source.value += '/index.js';
+          return;
         }
+
+        node.source.value += '/index.js';
+        return;
       }
     },
   },
