@@ -551,7 +551,7 @@ const buildStatic = async () => {
                 },
               }
             : {
-                static: { head, body },
+                static: { head: `${head}${styles}`, body },
               }
         ) satisfies PageDataJSON;
 
