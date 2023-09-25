@@ -72,18 +72,18 @@ const transformCommonjsToEsm: PluginObj = {
       const { left, right } = node;
 
       if (
-        left.type === 'MemberExpression' &&
-        left.object.type === 'Identifier' &&
-        left.object.name === 'module' &&
-        left.property.type === 'Identifier' &&
-        left.property.name === 'exports'
+        right.type === 'CallExpression' &&
+        right.callee.type === 'Identifier' &&
+        right.callee.name === 'require' &&
+        right.arguments.length === 1 &&
+        right.arguments[0]!.type === 'StringLiteral'
       ) {
         if (
-          right.type === 'CallExpression' &&
-          right.callee.type === 'Identifier' &&
-          right.callee.name === 'require' &&
-          right.arguments.length === 1 &&
-          right.arguments[0]!.type === 'StringLiteral'
+          left.type === 'MemberExpression' &&
+          left.object.type === 'Identifier' &&
+          left.object.name === 'module' &&
+          left.property.type === 'Identifier' &&
+          left.property.name === 'exports'
         ) {
           const requirePath = right.arguments[0]!.value;
           const variableName = requirePath.replace(/[/.-]+/g, '_');
