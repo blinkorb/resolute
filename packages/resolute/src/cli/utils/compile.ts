@@ -4,6 +4,8 @@ import { PluginObj, transformSync } from '@babel/core';
 import t from '@babel/types';
 import ts from 'typescript';
 
+import { MATCHES_LOCAL } from '../constants.js';
+
 const require = createRequire(import.meta.url);
 
 export const compileTypeScript = (
@@ -90,6 +92,19 @@ const transformCommonjsToEsm: PluginObj = {
             t.exportDefaultDeclaration(t.identifier(variableName)),
           ]);
         }
+      }
+    },
+    CallExpression(path) {
+      const { callee, arguments: args } = path.node;
+      if (
+        callee.type === 'Identifier' &&
+        callee.name === 'require' &&
+        args.length === 1 &&
+        args[0]!.type === 'StringLiteral' &&
+        MATCHES_LOCAL.test(args[0]!.value) &&
+        !/\.[mc]?js$/.test(args[0]!.value)
+      ) {
+        args[0].value += '.js';
       }
     },
   },
