@@ -120,6 +120,11 @@ const loadPage = async (location: Location) => {
     );
 
     globalThis.document.title = '';
+    const jssStyles = document.querySelectorAll('[data-jss]');
+
+    for (const jssStyle of jssStyles) {
+      jssStyle.remove();
+    }
 
     if (prevPage?.root) {
       prevPage.root.render(page);
