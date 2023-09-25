@@ -48,14 +48,6 @@ interface StaticRenderer {
 
 let prevPage: ClientRenderer | StaticRenderer | undefined;
 
-const removeJssStyles = () => {
-  const jssStyles = document.querySelectorAll('[data-jss]');
-
-  for (const jssStyle of jssStyles) {
-    jssStyle.remove();
-  }
-};
-
 const loadPage = async (location: Location) => {
   const resoluteClientJson: PageDataJSON = await fetch(
     `${location.protocol}//${location.host}${location.pathname.replace(
@@ -117,11 +109,14 @@ const loadPage = async (location: Location) => {
       Promise.resolve(element)
     );
 
+    const jssStyles = document.querySelectorAll('[data-jss]');
+
     const page = (
       <Page
         location={withInjectedProps.location}
         router={router}
         meta={withInjectedProps.meta}
+        removeStyles={!prevPage?.root ? jssStyles : null}
       >
         {withLayouts}
       </Page>
@@ -132,16 +127,12 @@ const loadPage = async (location: Location) => {
     if (prevPage?.root) {
       prevPage.root.render(page);
     } else if (prevPage?.static || pageModule.hydrate === false) {
-      removeJssStyles();
-
       const root = createRoot(globalThis.document.body);
       root.render(page);
       prevPage = {
         root,
       };
     } else {
-      removeJssStyles();
-
       prevPage = {
         root: hydrateRoot(globalThis.document.body, page),
       };
