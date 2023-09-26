@@ -17,6 +17,7 @@ export const compileTypeScript = (
     module: ts.ModuleKind.NodeNext,
     declaration: false,
     inlineSourceMap: true,
+    inlineSources: true,
     jsx: ts.JsxEmit.React,
     outDir,
     rootDir,
