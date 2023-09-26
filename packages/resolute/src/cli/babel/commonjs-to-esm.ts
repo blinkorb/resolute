@@ -12,6 +12,7 @@ const commonjsToEsm: PluginObj = {
       const { node } = p;
       const { left, right } = node;
 
+      // Convert module.exports to export default and export all
       if (
         right.type === 'CallExpression' &&
         right.callee.type === 'Identifier' &&
@@ -45,6 +46,7 @@ const commonjsToEsm: PluginObj = {
       const { node } = p;
       const { callee, arguments: args } = node;
 
+      // Add file extension to require calls
       if (
         callee.type === 'Identifier' &&
         callee.name === 'require' &&
@@ -77,6 +79,7 @@ const commonjsToEsm: PluginObj = {
 
       const [first, second, third] = node.arguments;
 
+      // Create named exports for Object.defineProperty
       if (
         node.callee.type === 'MemberExpression' &&
         node.callee.object.type === 'Identifier' &&
@@ -165,6 +168,7 @@ const commonjsToEsm: PluginObj = {
     ImportDeclaration(p) {
       const { node } = p;
 
+      // Add file extension to import statements
       if (
         node.source.type === 'StringLiteral' &&
         MATCHES_LOCAL.test(node.source.value) &&
