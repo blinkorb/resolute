@@ -490,10 +490,10 @@ const buildStatic = async () => {
         );
 
         const helmet = Helmet.renderStatic();
-        const styles = `<style type="text/css" data-jss>${sheets.toString()}</style>`;
+        const headStyles = `<style type="text/css" data-jss>${sheets.toString()}</style>`;
 
         // Collect head info from helmet
-        const head = [
+        const headHelmet = [
           helmet.title.toString(),
           helmet.meta.toString(),
           helmet.link.toString(),
@@ -523,7 +523,7 @@ const buildStatic = async () => {
             ),
         });
 
-        const html = `<!DOCTYPE html><html><head>${head}<script type="importmap">${importMap}</script><script defer type="module" src="/node-modules/@blinkorb/resolute@${RESOLUTE_VERSION}/client.js"></script>${styles}</head><body>${body}</body></html>\n`;
+        const html = `<!DOCTYPE html><html><head>${headHelmet}<script type="importmap">${importMap}</script><script defer type="module" src="/node-modules/@blinkorb/resolute@${RESOLUTE_VERSION}/client.js"></script>${headStyles}</head><body>${body}</body></html>\n`;
 
         const outFileHTML = path.resolve(
           STATIC_PATHNAME,
@@ -551,7 +551,7 @@ const buildStatic = async () => {
                 },
               }
             : {
-                static: { head: `${head}${styles}`, body },
+                static: { head: `${headHelmet}${headStyles}`, body },
               }
         ) satisfies PageDataJSON;
 
