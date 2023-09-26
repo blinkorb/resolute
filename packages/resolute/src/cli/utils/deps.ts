@@ -7,6 +7,11 @@ import { MATCHES_LOCAL, MATCHES_MODULE_SCOPE_AND_NAME } from '../constants.js';
 export const getAllDependencies = async (pathnames: string[]) => {
   const dependencies = await cruise(pathnames, {
     baseDir: process.cwd(),
+    enhancedResolveOptions: {
+      mainFields: ['module', 'main'],
+      exportsFields: ['exports'],
+      conditionNames: ['import', 'require', 'node', 'default'],
+    },
   });
 
   const list = dependencies.output.modules
