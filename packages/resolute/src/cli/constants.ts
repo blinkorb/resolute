@@ -30,4 +30,6 @@ export const MATCHES_LAYOUT = /\.layout\.js$/;
 export const MATCHES_SERVER = /\.server\.js$/;
 export const MATCHES_STATIC = /\.static\.js$/;
 export const MATCHES_SERVER_STATIC_API = /\.(server|static|api)\.js$/;
-export const MATCHES_NODE_MODULE_RELATIVE = /[\w-]+\/[\w-]+/;
+export const MATCHES_MODULE_SCOPE_AND_NAME =
+  /^(@[a-z0-9_.-]+\/[a-z0-9_.-]+|[a-z0-9_.-]+)/;
+export const MATCHES_JS_EXTENSION = /\.[mc]?js$/;

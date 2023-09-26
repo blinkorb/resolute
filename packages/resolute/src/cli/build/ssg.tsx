@@ -8,6 +8,7 @@ import { mkdirpSync } from 'mkdirp';
 import React, { ReactElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import { Helmet } from 'react-helmet';
+import { createGenerateId, JssProvider, SheetsRegistry } from 'react-jss';
 import { rimrafSync } from 'rimraf';
 
 import { MATCHES_TRAILING_SLASH } from '../../constants.js';
@@ -189,30 +190,7 @@ const buildStatic = async () => {
 
         const code = compileBabel(content, pathname, ['NODE_ENV'], true);
 
-        fs.writeFileSync(
-          outPath,
-          code
-            .replace(
-              // Hack to fix react imports
-              /(import\s+[\w]+\s+from\s*["']\.\/cjs\/react\.(production|development)\.min\.js["'];)/,
-              `$1export * from"./cjs/react.$2.min.js";`
-            )
-            .replace(
-              // Hack to fix relative imports that don't include a file extension
-              /from\s*["']([^"']*?)["'];/,
-              (match, importPath: string) => {
-                if (
-                  MATCHES_LOCAL.test(importPath) &&
-                  importPath.substring(importPath.length - 3) !== '.js'
-                ) {
-                  return `from"${importPath}.js";`;
-                }
-
-                return match;
-              }
-            ),
-          { encoding: 'utf8' }
-        );
+        fs.writeFileSync(outPath, code, { encoding: 'utf8' });
       })
   );
 
@@ -495,21 +473,27 @@ const buildStatic = async () => {
           forward: throwNavigationError,
         };
 
+        const sheets = new SheetsRegistry();
+        const generateId = createGenerateId();
+
         // Render page
         const body = renderToString(
-          <Page
-            location={withInjectedProps.location}
-            router={router}
-            meta={withInjectedProps.meta}
-          >
-            {withLayouts}
-          </Page>
+          <JssProvider registry={sheets} generateId={generateId}>
+            <Page
+              location={withInjectedProps.location}
+              router={router}
+              meta={withInjectedProps.meta}
+            >
+              {withLayouts}
+            </Page>
+          </JssProvider>
         );
 
         const helmet = Helmet.renderStatic();
+        const headStyles = `<style type="text/css" data-jss>${sheets.toString()}</style>`;
 
         // Collect head info from helmet
-        const head = [
+        const headHelmet = [
           helmet.title.toString(),
           helmet.meta.toString(),
           helmet.link.toString(),
@@ -539,7 +523,7 @@ const buildStatic = async () => {
             ),
         });
 
-        const html = `<!DOCTYPE html><html><head>${head}</head><script type="importmap">${importMap}</script><script defer type="module" src="/node-modules/@blinkorb/resolute@${RESOLUTE_VERSION}/client.js"></script><body>${body}</body></html>\n`;
+        const html = `<!DOCTYPE html><html><head>${headHelmet}<script type="importmap">${importMap}</script><script defer type="module" src="/node-modules/@blinkorb/resolute@${RESOLUTE_VERSION}/client.js"></script>${headStyles}</head><body>${body}</body></html>\n`;
 
         const outFileHTML = path.resolve(
           STATIC_PATHNAME,
@@ -567,7 +551,7 @@ const buildStatic = async () => {
                 },
               }
             : {
-                static: { head, body },
+                static: { head: `${headHelmet}${headStyles}`, body },
               }
         ) satisfies PageDataJSON;
 

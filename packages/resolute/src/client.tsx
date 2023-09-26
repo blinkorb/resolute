@@ -109,11 +109,14 @@ const loadPage = async (location: Location) => {
       Promise.resolve(element)
     );
 
+    const jssStyles = document.querySelectorAll('[data-jss]');
+
     const page = (
       <Page
         location={withInjectedProps.location}
         router={router}
         meta={withInjectedProps.meta}
+        removeStyles={!prevPage?.root ? jssStyles : null}
       >
         {withLayouts}
       </Page>

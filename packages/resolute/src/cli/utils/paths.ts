@@ -31,10 +31,11 @@ export const isPartialRouteMatch = (route: string, match: string) =>
 export const toStaticNodeModulePath = (
   pathname: string,
   nodeModulesVersionMap: Record<string, string>
-) =>
-  pathname.replace(
-    /^.*node_modules\/(@[\w-]+\/[\w-]+|[\w-]+)(\/.+)/,
+) => {
+  return pathname.replace(
+    /^.*node_modules\/(@[a-z0-9_.-]+\/[a-z0-9_.-]+|[a-z0-9_.-]+)(\/.+)/,
     (_match, moduleName, rest) => {
       return `node-modules/${moduleName}@${nodeModulesVersionMap[moduleName]}${rest}`;
     }
   );
+};

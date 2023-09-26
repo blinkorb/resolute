@@ -3,6 +3,8 @@ import { createRequire } from 'node:module';
 import { transformSync } from '@babel/core';
 import ts from 'typescript';
 
+import commonjsToEsm from '../babel/commonjs-to-esm.js';
+
 const require = createRequire(import.meta.url);
 
 export const compileTypeScript = (
@@ -72,6 +74,7 @@ export const compileBabel = (
         { include: envVars },
       ],
       require.resolve('babel-plugin-minify-dead-code-elimination'),
+      ...(commonjs ? [commonjsToEsm] : []),
       ...(commonjs ? [require.resolve('babel-plugin-transform-commonjs')] : []),
     ],
     minified: true,
