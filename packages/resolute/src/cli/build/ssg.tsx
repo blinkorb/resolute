@@ -24,6 +24,8 @@ import { getPageMeta } from '../../utils/meta.js';
 import { getModule } from '../../utils/module.js';
 import { toAPIPath } from '../../utils/paths.js';
 import {
+  GLOB_JS_EXTENSION,
+  GLOB_SRC_EXTENSION,
   MATCHES_CLIENT,
   MATCHES_LAYOUT,
   MATCHES_LOCAL,
@@ -90,7 +92,7 @@ const buildStatic = async () => {
 
   // Copy resolute files
   await cpy(
-    path.resolve(RESOLUTE_PATHNAME, '**/*.js'),
+    path.resolve(RESOLUTE_PATHNAME, `**/*${GLOB_JS_EXTENSION}`),
     path.resolve(
       STATIC_PATHNAME,
       'node-modules',
@@ -102,7 +104,7 @@ const buildStatic = async () => {
 
   // Get src files
   const srcFiles = glob.sync(
-    path.resolve(SRC_PATHNAME, '**/*.{ts,tsx,js,jsx,mjs,cjs}')
+    path.resolve(SRC_PATHNAME, `**/*${GLOB_SRC_EXTENSION}`)
   );
 
   // Compile src files
@@ -110,13 +112,16 @@ const buildStatic = async () => {
 
   // All out files
   const clientFiles = glob.sync(
-    path.resolve(SERVER_PATHNAME, '**/*.{page,client,layout}.{js,jsx,mjs,cjs}')
+    path.resolve(
+      SERVER_PATHNAME,
+      `**/*.{page,client,layout}${GLOB_JS_EXTENSION}`
+    )
   );
 
   const resoluteFiles = glob.sync(
     path.resolve(
       STATIC_PATHNAME,
-      'node-modules/@blinkorb/resolute@*/**/*.{js,jsx,mjs,cjs}'
+      `node-modules/@blinkorb/resolute@*/**/*${GLOB_JS_EXTENSION}`
     )
   );
 
@@ -243,7 +248,10 @@ const buildStatic = async () => {
 
   // Get page, client, static, server, and layout files
   const componentFiles = glob.sync(
-    path.resolve(SERVER_PATHNAME, '**/*.{page,client,static,server,layout}.js')
+    path.resolve(
+      SERVER_PATHNAME,
+      `**/*.{page,client,static,server,layout}${GLOB_JS_EXTENSION}`
+    )
   );
 
   // Construct routes from component pathnames
@@ -371,9 +379,10 @@ const buildStatic = async () => {
 
   const app = express();
 
+  // Setup API endpoints
   await Promise.all(
     glob
-      .sync(path.resolve(SERVER_PATHNAME, '**/*.api.js'))
+      .sync(path.resolve(SERVER_PATHNAME, `**/*.api${GLOB_JS_EXTENSION}`))
       .map(async (pathname) => {
         const serverModule = await getModule(pathname);
 
