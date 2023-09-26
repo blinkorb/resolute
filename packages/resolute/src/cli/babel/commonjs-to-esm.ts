@@ -8,6 +8,14 @@ import { MATCHES_JS_EXTENSION, MATCHES_LOCAL } from '../constants.js';
 
 const commonjsToEsm: PluginObj = {
   visitor: {
+    Directive(p) {
+      const { node } = p;
+
+      // Remove "use strict" directives
+      if (node.value.value === 'use strict') {
+        p.remove();
+      }
+    },
     AssignmentExpression(p) {
       const { node } = p;
       const { left, right } = node;
