@@ -10,7 +10,7 @@ export const getAllDependencies = async (pathnames: string[]) => {
     enhancedResolveOptions: {
       mainFields: ['module', 'main'],
       exportsFields: ['exports'],
-      conditionNames: ['import', 'require', 'node', 'default'],
+      conditionNames: ['import', 'require', 'default'],
     },
   });
 
