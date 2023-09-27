@@ -5,7 +5,6 @@ const settings: ResoluteSettings = {
     defaultTitle: 'Default Title',
     titleTemplate: '%s | Example',
   },
-  viewTransitions: true,
 };
 
 export default settings;

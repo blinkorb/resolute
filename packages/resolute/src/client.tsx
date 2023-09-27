@@ -5,6 +5,7 @@ import {
   DEFAULT_PRELOAD_CACHE_TIMEOUT,
   DEFAULT_PRELOAD_ON_FOCUS,
   DEFAULT_PRELOAD_ON_HOVER,
+  DEFAULT_VIEW_TRANSITIONS,
   MATCHES_TRAILING_SLASH,
 } from './constants.js';
 import Page from './page.js';
@@ -455,7 +456,7 @@ const loadPage = async (location: Location) => {
   const cache = await pageCache.cache;
 
   if (
-    settings.viewTransitions &&
+    (settings.viewTransitions ?? DEFAULT_VIEW_TRANSITIONS) &&
     typeof globalThis.document.startViewTransition === 'function'
   ) {
     globalThis.document.startViewTransition(() =>
