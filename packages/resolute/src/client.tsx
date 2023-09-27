@@ -74,20 +74,54 @@ interface StaticRenderer {
 let prevPage: ClientRenderer | StaticRenderer | undefined;
 
 const loadPage = async (location: Location) => {
-  const resoluteClientJson: PageDataJSON = await fetch(
+  const resoluteClientJson: PageDataJSON | Error = await fetch(
     `${location.protocol}//${location.host}${location.pathname.replace(
       MATCHES_TRAILING_SLASH,
       ''
     )}/resolute.json`
-  ).then((response) => {
-    if (response.ok) {
-      return response.json();
-    }
+  )
+    .then(async (response) => {
+      if (response.ok) {
+        return response.json();
+      }
 
-    throw new Error(
-      `Failed to fetch resolute.json for route ${location.pathname}`
-    );
-  });
+      return fetch(
+        `${location.protocol}//${location.host}/404/resolute.json`
+      ).then((pageNotFoundResponse) => {
+        if (pageNotFoundResponse.ok) {
+          return pageNotFoundResponse.json();
+        }
+
+        throw new Error(
+          `Failed to load resolute.json for ${location.pathname}${
+            pageNotFoundResponse.status === 404
+              ? ' and could not find a 404 page to fall back to. Make sure you have defined a 404.page.tsx.'
+              : '.'
+          }`
+        );
+      });
+    })
+    .catch((error) => {
+      if (globalThis.console) {
+        // eslint-disable-next-line no-console
+        console.error(error);
+      }
+
+      return error;
+    });
+
+  if (resoluteClientJson instanceof Error) {
+    if (process.env.NODE_ENV === 'development') {
+      if (prevPage?.root) {
+        prevPage.root.unmount();
+      }
+
+      globalThis.document.body.innerHTML = `<p style="color: red;">${resoluteClientJson.message}</p>`;
+    } else {
+      globalThis.location.reload();
+    }
+    return;
+  }
 
   const router = getRouter(location.origin, history);
 
