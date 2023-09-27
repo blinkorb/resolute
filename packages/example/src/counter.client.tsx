@@ -14,6 +14,11 @@ const Counter = ({ foo }: StaticProps) => {
     <div>
       <p>{foo}</p>
       <CounterClient />
+      <p>
+        Client env: "{process.env.CLIENT_ENV}", Accessing an env var that is not
+        prefixed with "CLIENT_" on the client will error when trying to access
+        process at runtime
+      </p>
     </div>
   );
 };

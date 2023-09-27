@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import cpy from 'cpy';
+import { config as dotenvConfig } from 'dotenv';
 import express from 'express';
 import { glob } from 'glob';
 import { mkdirpSync } from 'mkdirp';
@@ -50,6 +51,8 @@ import {
   toStaticNodeModulePath,
 } from '../utils/paths.js';
 import { extractSourceMap } from '../utils/source-maps.js';
+
+dotenvConfig();
 
 let settings: ResoluteSettings = {};
 
@@ -230,7 +233,15 @@ const buildStatic = async () => {
         const code = compileBabel(
           content,
           pathname,
-          ['NODE_ENV', 'PORT', 'URL', 'API_URL'],
+          [
+            'NODE_ENV',
+            'PORT',
+            'URL',
+            'API_URL',
+            ...Object.keys(process.env).filter((key) =>
+              key.startsWith('CLIENT_')
+            ),
+          ],
           false
         );
 

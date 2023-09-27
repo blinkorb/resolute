@@ -13,6 +13,9 @@ const Counter = ({ foo }: StaticProps) => {
     <div>
       <p>{foo}</p>
       <p>Count: {0}</p>
+      <p>
+        Client env: "{process.env.CLIENT_ENV}", Secret: "{process.env.SECRET}"
+      </p>
     </div>
   );
 };
