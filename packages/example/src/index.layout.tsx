@@ -4,6 +4,7 @@ import { createUseStyles, DefaultTheme, ThemeProvider } from 'react-jss';
 
 const THEME = {
   red: '#f00',
+  blue: '#00f',
 } satisfies DefaultTheme;
 
 const useStyles = createUseStyles((theme) => ({
