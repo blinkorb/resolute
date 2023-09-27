@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, Root } from 'react-dom/client';
 
 import {
   DEFAULT_PRELOAD_CACHE_TIMEOUT,
+  DEFAULT_PRELOAD_ON_HOVER,
   MATCHES_TRAILING_SLASH,
 } from './constants.js';
 import Page from './page.js';
@@ -375,6 +376,22 @@ const updatePage = async (
           passive: false,
         }
       );
+
+      if (link.dataset.preload === 'true') {
+        preload(link.href);
+      }
+
+      if (settings.preload?.onHover ?? DEFAULT_PRELOAD_ON_HOVER) {
+        link.addEventListener(
+          'mouseover',
+          () => {
+            preload(link.href);
+          },
+          {
+            passive: false,
+          }
+        );
+      }
     }
   }
 };

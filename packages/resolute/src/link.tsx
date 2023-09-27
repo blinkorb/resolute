@@ -83,6 +83,7 @@ const Link = ({
       data-hard={hard}
       data-replace={replace}
       data-scroll-to-top={scrollToTop}
+      data-preload={shouldPreload}
       onClick={onClickWrapper}
       onMouseOver={onMouseOverWrapper}
     >
