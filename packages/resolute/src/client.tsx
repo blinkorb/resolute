@@ -22,6 +22,7 @@ import {
   getModuleElement,
   getProps,
 } from './utils/component.js';
+import { getActiveElementPath, reFocusActiveElement } from './utils/focus.js';
 import { getRouter } from './utils/location.js';
 import { getModule } from './utils/module.js';
 import { toTSX } from './utils/paths.js';
@@ -317,6 +318,11 @@ const updatePage = async (
     return;
   }
 
+  const activeElementPath = getActiveElementPath(
+    globalThis.document.activeElement,
+    []
+  );
+
   if ('page' in cache) {
     if (id === latestLoaded.id || loadTime >= latestLoaded.time) {
       const page =
@@ -336,6 +342,15 @@ const updatePage = async (
         prevPage = {
           root,
         };
+
+        globalThis.requestAnimationFrame(() => {
+          if (
+            !globalThis.document.activeElement ||
+            globalThis.document.activeElement === globalThis.document.body
+          ) {
+            reFocusActiveElement(globalThis.document.body, activeElementPath);
+          }
+        });
       } else {
         prevPage = {
           root: hydrateRoot(globalThis.document.body, page),
@@ -350,6 +365,8 @@ const updatePage = async (
     if (prevPage) {
       globalThis.document.head.innerHTML = cache.head;
       globalThis.document.body.innerHTML = cache.body;
+
+      reFocusActiveElement(globalThis.document.body, activeElementPath);
     }
 
     prevPage = {
