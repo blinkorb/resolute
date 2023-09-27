@@ -58,6 +58,11 @@ const Navigation = () => {
             Markdown
           </Link>
         </li>
+        <li>
+          <Link className={styles.link} href="/markdown-without-meta">
+            Markdown (no metadata)
+          </Link>
+        </li>
       </ul>
     </header>
   );
