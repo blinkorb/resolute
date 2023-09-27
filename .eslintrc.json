@@ -95,6 +95,11 @@
     "no-restricted-globals": [
       "error",
       "window",
+      "document",
+      "history",
+      "location",
+      "dispatchEvent",
+      "addEventListener",
       "require",
       "postMessage",
       "blur",

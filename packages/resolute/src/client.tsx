@@ -109,7 +109,7 @@ const loadPage = async (location: Location) => {
       Promise.resolve(element)
     );
 
-    const jssStyles = document.querySelectorAll('[data-jss]');
+    const jssStyles = globalThis.document.querySelectorAll('[data-jss]');
 
     const page = (
       <Page
