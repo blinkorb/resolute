@@ -10,6 +10,7 @@ import {
   PageDataJSON,
   PageDataJSONClient,
   PageDataJSONStatic,
+  PreloadFunction,
   ResoluteSettings,
   Router,
   UnknownObject,
@@ -113,6 +114,10 @@ interface PageCache {
 
 const PAGE_CACHE: Record<string, PageCache> = {};
 
+let preload: PreloadFunction = () => {
+  throw new Error('preload not initialized');
+};
+
 const renderClient = async (
   pageModule: UnknownObject,
   resolutePageJson: PageDataJSONClient,
@@ -167,6 +172,7 @@ const renderClient = async (
       meta={withInjectedProps.meta}
       settings={settings}
       removeStyles={!prevPage?.root ? jssStyles : null}
+      preload={preload}
     >
       {withLayouts}
     </Page>
@@ -176,7 +182,7 @@ const renderClient = async (
 };
 
 const loadClient = async (
-  location: Location,
+  location: Location | URL,
   resolutePageJson: PageDataJSONClient,
   router: Router
 ) => {
@@ -193,7 +199,7 @@ const loadClient = async (
   };
 };
 
-const loadModule = async (location: Location, router: Router) => {
+const loadModule = async (location: Location | URL, router: Router) => {
   const resolutePageJson: PageDataJSON | Error = await fetch(
     `${location.protocol}//${location.host}${location.pathname.replace(
       MATCHES_TRAILING_SLASH,
@@ -240,7 +246,7 @@ const loadModule = async (location: Location, router: Router) => {
 };
 
 const loadModuleFromCache = async (
-  location: Location,
+  location: Location | URL,
   pathname: string,
   id: string,
   loadTime: number,
@@ -268,6 +274,24 @@ const loadModuleFromCache = async (
   PAGE_CACHE[pathname] = newPageCache;
 
   return newPageCache;
+};
+
+preload = (href: string) => {
+  const url = new URL(href, globalThis.location.origin);
+  const pathname = url.pathname.replace(MATCHES_TRAILING_SLASH, '/');
+
+  if (
+    url.origin === globalThis.location.origin &&
+    pathname !==
+      globalThis.location.pathname.replace(MATCHES_TRAILING_SLASH, '/')
+  ) {
+    const id = `${pathname}${url.search}${url.hash}`;
+    const loadTime = Date.now();
+
+    const router = getRouter(url.origin, history);
+
+    loadModuleFromCache(url, pathname, id, loadTime, router);
+  }
 };
 
 const updatePage = async (

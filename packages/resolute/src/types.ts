@@ -118,6 +118,9 @@ export interface ResoluteSettings {
   helmet?: Omit<HelmetProps, 'children'>;
   viewTransitions?: boolean;
   preload?: {
+    onHover?: boolean;
     cacheTimeout?: number;
   };
 }
+
+export type PreloadFunction = (href: string) => void;
