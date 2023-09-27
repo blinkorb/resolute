@@ -318,10 +318,9 @@ const updatePage = async (
     return;
   }
 
-  const activeElementPath = getActiveElementPath(
-    globalThis.document.activeElement,
-    []
-  );
+  const { activeElement } = globalThis.document;
+  const activeElementTagName = activeElement?.tagName.toLowerCase();
+  const activeElementPath = getActiveElementPath(activeElement, []);
 
   if ('page' in cache) {
     if (id === latestLoaded.id || loadTime >= latestLoaded.time) {
@@ -348,7 +347,11 @@ const updatePage = async (
             !globalThis.document.activeElement ||
             globalThis.document.activeElement === globalThis.document.body
           ) {
-            reFocusActiveElement(globalThis.document.body, activeElementPath);
+            reFocusActiveElement(
+              globalThis.document.body,
+              activeElementPath,
+              activeElementTagName
+            );
           }
         });
       } else {
@@ -366,7 +369,11 @@ const updatePage = async (
       globalThis.document.head.innerHTML = cache.head;
       globalThis.document.body.innerHTML = cache.body;
 
-      reFocusActiveElement(globalThis.document.body, activeElementPath);
+      reFocusActiveElement(
+        globalThis.document.body,
+        activeElementPath,
+        activeElementTagName
+      );
     }
 
     prevPage = {
