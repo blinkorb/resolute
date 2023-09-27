@@ -4,6 +4,7 @@ import { createUseStyles, DefaultTheme, ThemeProvider } from 'react-jss';
 
 const THEME = {
   red: '#f00',
+  blue: '#00f',
 } satisfies DefaultTheme;
 
 const useStyles = createUseStyles((theme) => ({
@@ -51,6 +52,16 @@ const Navigation = () => {
         <li>
           <Link className={styles.link} href="/some-path">
             Hidden Route (helmet title)
+          </Link>
+        </li>
+        <li>
+          <Link className={styles.link} href="/markdown">
+            Markdown
+          </Link>
+        </li>
+        <li>
+          <Link className={styles.link} href="/markdown-without-meta">
+            Markdown (no metadata)
           </Link>
         </li>
       </ul>

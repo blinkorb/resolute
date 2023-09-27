@@ -5,11 +5,13 @@ import cpy from 'cpy';
 import { config as dotenvConfig } from 'dotenv';
 import express from 'express';
 import { glob } from 'glob';
+import metadataParser from 'markdown-yaml-metadata-parser';
 import { mkdirpSync } from 'mkdirp';
 import React, { ReactElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import { Helmet } from 'react-helmet';
 import { createGenerateId, JssProvider, SheetsRegistry } from 'react-jss';
+import ReactMarkdown from 'react-markdown';
 import { rimrafSync } from 'rimraf';
 
 import { MATCHES_TRAILING_SLASH } from '../../constants.js';
@@ -21,15 +23,18 @@ import {
   getModuleElement,
   getProps,
 } from '../../utils/component.js';
+import { getLocationInfo } from '../../utils/location.js';
 import { getPageMeta } from '../../utils/meta.js';
 import { getModule } from '../../utils/module.js';
 import { toAPIPath } from '../../utils/paths.js';
 import {
   GLOB_JS_EXTENSION,
+  GLOB_MARKDOWN_EXTENSION,
   GLOB_SRC_EXTENSION,
   MATCHES_CLIENT,
   MATCHES_LAYOUT,
   MATCHES_LOCAL,
+  MATCHES_MARKDOWN,
   MATCHES_NODE_MODULE,
   MATCHES_PAGE,
   MATCHES_RESOLUTE,
@@ -66,6 +71,7 @@ interface RouteInfoWithLayoutInfo {
   page?: string;
   client?: string;
   static?: string;
+  markdown?: string;
   layouts: readonly LayoutInfo[];
 }
 
@@ -75,6 +81,55 @@ interface RouteInfo extends Omit<RouteInfoWithLayoutInfo, 'layouts'> {
 
 type RouteMappingWithLayoutInfo = Record<string, RouteInfoWithLayoutInfo>;
 type RouteMapping = Record<string, RouteInfo>;
+
+const getElement = async (route: string, info: RouteInfo) => {
+  const href = `${(process.env.URL || '').replace(/\/?$/, '')}${route}`;
+
+  if (info.markdown) {
+    const src = fs.readFileSync(info.markdown, { encoding: 'utf8' });
+    const { content, metadata } = metadataParser(src);
+
+    const element = (
+      <ReactMarkdown {...settings.markdown}>{content}</ReactMarkdown>
+    );
+
+    return {
+      element,
+      pageProps: {},
+      meta: getPageMeta(metadata, info.markdown),
+      location: getLocationInfo(href),
+      href,
+      pathname: info.markdown,
+    };
+  }
+
+  const pathname = info.static || info.page!;
+  const pageModule = await getModule(pathname);
+  const pageProps = await getProps(pageModule, pathname);
+  const withInjectedProps = getInjectedProps(
+    pageModule,
+    pathname,
+    href,
+    pageProps,
+    undefined,
+    'static'
+  );
+
+  const element = await getModuleElement(
+    pageModule,
+    fromServerPathToRelativeTSX(pathname),
+    withInjectedProps
+  );
+
+  return {
+    element,
+    pageProps,
+    meta: withInjectedProps.meta,
+    location: withInjectedProps.location,
+    href,
+    pathname,
+  };
+};
 
 const buildStatic = async () => {
   // eslint-disable-next-line no-console
@@ -106,6 +161,12 @@ const buildStatic = async () => {
       `resolute@${RESOLUTE_VERSION}`
     ),
     { filter: (file) => !file.path.includes('/cli/') }
+  );
+
+  // Copy markdown files
+  await cpy(
+    path.resolve(SRC_PATHNAME, `**/*${GLOB_MARKDOWN_EXTENSION}`),
+    SERVER_PATHNAME
   );
 
   // Get src files
@@ -280,17 +341,18 @@ const buildStatic = async () => {
   });
 
   // Get page, client, static, server, and layout files
-  const componentFiles = glob.sync(
+  const componentFiles = glob.sync([
     path.resolve(
       SERVER_PATHNAME,
       `**/*.{page,client,static,server,layout}${GLOB_JS_EXTENSION}`
-    )
-  );
+    ),
+    path.resolve(SERVER_PATHNAME, `**/*${GLOB_MARKDOWN_EXTENSION}`),
+  ]);
 
   // Construct routes from component pathnames
   const componentRoutes = componentFiles.map((pathname) => ({
     pathname,
-    route: pathnameToRoute(pathname),
+    route: pathnameToRoute(pathname, SERVER_PATHNAME),
   }));
 
   // Collect components related to specific routes
@@ -342,6 +404,25 @@ const buildStatic = async () => {
           [route]: {
             ...acc[route],
             static: pathname,
+            layouts: [],
+          },
+        };
+      }
+
+      if (MATCHES_MARKDOWN.test(pathname)) {
+        if (acc[route]) {
+          // eslint-disable-next-line no-console
+          console.error(
+            `Encountered a another page that clashes with a markdown page for route "${route}"`
+          );
+          return process.exit(1);
+        }
+
+        return {
+          ...acc,
+          [route]: {
+            ...acc[route],
+            markdown: pathname,
             layouts: [],
           },
         };
@@ -446,23 +527,8 @@ const buildStatic = async () => {
   const expressServer = app.listen(process.env.PORT, async () => {
     await Promise.all(
       Object.entries(routeMappingWithLayouts).map(async ([route, info]) => {
-        const href = `${(process.env.URL || '').replace(/\/?$/, '')}${route}`;
-        const pathname = info.static || info.page!;
-        const pageModule = await getModule(pathname);
-        const pageProps = await getProps(pageModule, pathname);
-        const withInjectedProps = getInjectedProps(
-          pageModule,
-          pathname,
-          href,
-          pageProps,
-          undefined,
-          'static'
-        );
-        const element = await getModuleElement(
-          pageModule,
-          fromServerPathToRelativeTSX(pathname),
-          withInjectedProps
-        );
+        const { element, pageProps, meta, location, href, pathname } =
+          await getElement(route, info);
 
         // Wrap page with layouts
         const { element: withLayouts, layoutsJSON } = await info.layouts.reduce<
@@ -526,9 +592,9 @@ const buildStatic = async () => {
         const body = renderToString(
           <JssProvider registry={sheets} generateId={generateId}>
             <Page
-              location={withInjectedProps.location}
+              location={location}
               router={router}
-              meta={withInjectedProps.meta}
+              meta={meta}
               settings={settings}
               preload={preload}
             >
@@ -591,10 +657,7 @@ const buildStatic = async () => {
                   layouts: layoutsJSON,
                 },
                 static: {
-                  meta: getPageMeta(
-                    pageModule,
-                    fromServerPathToRelativeTSX(pathname)
-                  ),
+                  meta,
                   props: pageProps,
                 },
               }
