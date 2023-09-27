@@ -34,7 +34,7 @@ import {
   MATCHES_CLIENT,
   MATCHES_LAYOUT,
   MATCHES_LOCAL,
-  MATCHES_MARKDOWN,
+  MATCHES_MARKDOWN_EXTENSION,
   MATCHES_NODE_MODULE,
   MATCHES_PAGE,
   MATCHES_RESOLUTE,
@@ -408,7 +408,7 @@ const buildStatic = async () => {
         };
       }
 
-      if (MATCHES_MARKDOWN.test(pathname)) {
+      if (MATCHES_MARKDOWN_EXTENSION.test(pathname)) {
         if (acc[route]) {
           // eslint-disable-next-line no-console
           console.error(
