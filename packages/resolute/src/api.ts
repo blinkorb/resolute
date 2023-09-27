@@ -27,9 +27,13 @@ const createAPI =
       method: (method || 'get').toUpperCase(),
       ...rest,
     }).then(async (response) => {
-      return response.json() as Promise<
-        S[K] extends RequestHandler<infer T> ? T : never
-      >;
+      if (response.ok) {
+        return response.json() as Promise<
+          S[K] extends RequestHandler<infer T> ? T : never
+        >;
+      }
+
+      throw response;
     });
   };
 
