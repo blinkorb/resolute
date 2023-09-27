@@ -14,3 +14,4 @@ export const METHODS = [
 export const MATCHES_TRAILING_SLASH = /\/?$/;
 export const DEFAULT_PRELOAD_CACHE_TIMEOUT = 10000;
 export const DEFAULT_PRELOAD_ON_HOVER = true;
+export const DEFAULT_PRELOAD_ON_FOCUS = true;

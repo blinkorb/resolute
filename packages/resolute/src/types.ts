@@ -119,6 +119,7 @@ export interface ResoluteSettings {
   viewTransitions?: boolean;
   preload?: {
     onHover?: boolean;
+    onFocus?: boolean;
     cacheTimeout?: number;
   };
 }

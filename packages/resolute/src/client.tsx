@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, Root } from 'react-dom/client';
 
 import {
   DEFAULT_PRELOAD_CACHE_TIMEOUT,
+  DEFAULT_PRELOAD_ON_FOCUS,
   DEFAULT_PRELOAD_ON_HOVER,
   MATCHES_TRAILING_SLASH,
 } from './constants.js';
@@ -388,7 +389,19 @@ const updatePage = async (
             preload(link.href);
           },
           {
-            passive: false,
+            passive: true,
+          }
+        );
+      }
+
+      if (settings.preload?.onFocus ?? DEFAULT_PRELOAD_ON_FOCUS) {
+        link.addEventListener(
+          'focus',
+          () => {
+            preload(link.href);
+          },
+          {
+            passive: true,
           }
         );
       }
