@@ -39,7 +39,7 @@ const Navigation = () => {
           </Link>
         </li>
         <li>
-          <Link className={styles.link} href="/client-only">
+          <Link preload className={styles.link} href="/client-only">
             Client Only Content (hydrated)
           </Link>
         </li>

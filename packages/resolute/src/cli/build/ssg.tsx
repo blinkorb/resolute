@@ -515,6 +515,10 @@ const buildStatic = async () => {
           forward: throwNavigationError,
         };
 
+        const preload = () => {
+          throw new Error('You cannot preload in an ssg/ssr context');
+        };
+
         const sheets = new SheetsRegistry();
         const generateId = createGenerateId();
 
@@ -526,6 +530,7 @@ const buildStatic = async () => {
               router={router}
               meta={withInjectedProps.meta}
               settings={settings}
+              preload={preload}
             >
               {withLayouts}
             </Page>
