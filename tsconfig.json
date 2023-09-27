@@ -15,7 +15,10 @@
     "forceConsistentCasingInFileNames": true,
     "target": "ESNext",
     "module": "NodeNext",
-    "jsx": "react"
+    "jsx": "react",
+    "paths": {
+      "@blinkorb/resolute": ["./packages/resolute/src/index.ts"]
+    }
   },
   "include": ["packages/**/src/**/*", "jest.config.ts"]
 }
