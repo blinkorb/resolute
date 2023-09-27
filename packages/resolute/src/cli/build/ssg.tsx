@@ -14,7 +14,7 @@ import { rimrafSync } from 'rimraf';
 import { MATCHES_TRAILING_SLASH } from '../../constants.js';
 import { RequestMethod } from '../../index.js';
 import Page from '../../page.js';
-import { LayoutJSON, PageDataJSON } from '../../types.js';
+import { LayoutJSON, PageDataJSON, ResoluteSettings } from '../../types.js';
 import {
   getInjectedProps,
   getModuleElement,
@@ -50,6 +50,8 @@ import {
   toStaticNodeModulePath,
 } from '../utils/paths.js';
 import { extractSourceMap } from '../utils/source-maps.js';
+
+let settings: ResoluteSettings = {};
 
 interface LayoutInfo {
   pathname: string;
@@ -119,6 +121,15 @@ const buildStatic = async () => {
     ),
     path.resolve(SERVER_PATHNAME, `resolute.settings${GLOB_JS_EXTENSION}`),
   ]);
+
+  // Load settings
+  try {
+    settings =
+      (await import(path.resolve(SERVER_PATHNAME, 'resolute.settings.js')))
+        .default || {};
+  } catch (error) {
+    console.warn('Failed to load resolute.settings.js');
+  }
 
   const resoluteFiles = glob.sync(
     path.resolve(
@@ -502,6 +513,7 @@ const buildStatic = async () => {
               location={withInjectedProps.location}
               router={router}
               meta={withInjectedProps.meta}
+              settings={settings}
             >
               {withLayouts}
             </Page>

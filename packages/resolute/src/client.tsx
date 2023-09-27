@@ -140,6 +140,7 @@ const loadPage = async (location: Location) => {
         location={withInjectedProps.location}
         router={router}
         meta={withInjectedProps.meta}
+        settings={settings}
         removeStyles={!prevPage?.root ? jssStyles : null}
       >
         {withLayouts}

@@ -1,3 +1,4 @@
+import { HelmetProps } from 'react-helmet';
 import { ComponentType, ReactElement, ReactNode } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -114,5 +115,6 @@ export type ServerModule = Partial<Record<string, AnyRequestHandler>>;
 export type GetPropsResult<T extends () => void> = Awaited<ReturnType<T>>;
 
 export interface ResoluteSettings {
+  helmet?: Omit<HelmetProps, 'children'>;
   viewTransitions?: boolean;
 }
