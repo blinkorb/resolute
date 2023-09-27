@@ -87,24 +87,28 @@ interface LatestLoaded {
 }
 
 let prevPage: ClientRenderer | StaticRenderer | undefined;
-let latestLoaded: LatestLoaded | null = null;
+let latestLoaded: LatestLoaded = {
+  id: '',
+  time: 0,
+};
+
+type CachedPage =
+  | {
+      resolutePageJson: PageDataJSONClient;
+      pageModule: UnknownObject;
+      page: ReactElement;
+    }
+  | {
+      resolutePageJson: PageDataJSONStatic;
+      head: string;
+      body: string;
+    }
+  | Error;
 
 interface PageCache {
   time: number;
   id: string;
-  cache: Promise<
-    | {
-        resolutePageJson: PageDataJSONClient;
-        pageModule: UnknownObject;
-        page: ReactElement;
-      }
-    | {
-        resolutePageJson: PageDataJSONStatic;
-        head: string;
-        body: string;
-      }
-    | Error
-  >;
+  cache: Promise<CachedPage>;
 }
 
 const PAGE_CACHE: Record<string, PageCache> = {};
@@ -266,25 +270,14 @@ const loadModuleFromCache = async (
   return newPageCache;
 };
 
-const loadPage = async (location: Location) => {
-  const pathname = location.pathname.replace(MATCHES_TRAILING_SLASH, '/');
-  const id = `${pathname}${location.search}${location.hash}`;
-  const loadTime = Date.now();
-  latestLoaded = {
-    id,
-    time: loadTime,
-  };
-
-  const router = getRouter(location.origin, history);
-  const pageCache = await loadModuleFromCache(
-    location,
-    pathname,
-    id,
-    loadTime,
-    router
-  );
-  const cache = await pageCache.cache;
-
+const updatePage = async (
+  location: Location,
+  pageCache: PageCache,
+  cache: CachedPage,
+  router: Router,
+  id: string,
+  loadTime: number
+) => {
   if (cache instanceof Error) {
     if (process.env.NODE_ENV === 'development') {
       if (prevPage?.root) {
@@ -362,17 +355,41 @@ const loadPage = async (location: Location) => {
   }
 };
 
-globalThis.addEventListener('popstate', () => {
+const loadPage = async (location: Location) => {
+  const pathname = location.pathname.replace(MATCHES_TRAILING_SLASH, '/');
+  const id = `${pathname}${location.search}${location.hash}`;
+  const loadTime = Date.now();
+  latestLoaded = {
+    id,
+    time: loadTime,
+  };
+
+  const router = getRouter(location.origin, history);
+
+  const pageCache = await loadModuleFromCache(
+    location,
+    pathname,
+    id,
+    loadTime,
+    router
+  );
+
+  const cache = await pageCache.cache;
+
   if (
     settings.viewTransitions &&
     typeof globalThis.document.startViewTransition === 'function'
   ) {
     globalThis.document.startViewTransition(() =>
-      loadPage(globalThis.location)
+      updatePage(location, pageCache, cache, router, id, loadTime)
     );
   } else {
-    loadPage(globalThis.location);
+    updatePage(location, pageCache, cache, router, id, loadTime);
   }
+};
+
+globalThis.addEventListener('popstate', () => {
+  loadPage(globalThis.location);
 });
 
 loadPage(globalThis.location);
