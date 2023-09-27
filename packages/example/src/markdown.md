@@ -1,6 +1,6 @@
-```
+---
 title: Markdown
-```
+---
 
 This page was generated from a markdown file.
 
