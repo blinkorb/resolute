@@ -14,7 +14,7 @@ import { createGenerateId, JssProvider, SheetsRegistry } from 'react-jss';
 import ReactMarkdown from 'react-markdown';
 import { rimrafSync } from 'rimraf';
 
-import { MATCHES_TRAILING_SLASH } from '../../constants.js';
+import { MATCHES_TRAILING_SLASH, SCOPED_NAME } from '../../constants.js';
 import { RequestMethod } from '../../index.js';
 import Page from '../../page.js';
 import { LayoutJSON, PageDataJSON, ResoluteSettings } from '../../types.js';
@@ -157,8 +157,7 @@ const buildStatic = async () => {
     path.resolve(
       STATIC_PATHNAME,
       'node-modules',
-      '@blinkorb',
-      `resolute@${RESOLUTE_VERSION}`
+      `${SCOPED_NAME}@${RESOLUTE_VERSION}`
     ),
     { filter: (file) => !file.path.includes('/cli/') }
   );
@@ -199,7 +198,7 @@ const buildStatic = async () => {
   const resoluteFiles = glob.sync(
     path.resolve(
       STATIC_PATHNAME,
-      `node-modules/@blinkorb/resolute@*/**/*${GLOB_JS_EXTENSION}`
+      `node-modules/${SCOPED_NAME}@*/**/*${GLOB_JS_EXTENSION}`
     )
   );
 
@@ -632,12 +631,12 @@ const buildStatic = async () => {
                 };
               },
               {
-                '@blinkorb/resolute': `/node-modules/@blinkorb/resolute@${RESOLUTE_VERSION}/index.js`,
+                [SCOPED_NAME]: `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/index.js`,
               }
             ),
         });
 
-        const html = `<!DOCTYPE html><html><head>${headHelmet}<script type="importmap">${importMap}</script><script defer type="module" src="/node-modules/@blinkorb/resolute@${RESOLUTE_VERSION}/client.js"></script>${headStyles}</head><body>${body}</body></html>\n`;
+        const html = `<!DOCTYPE html><html><head>${headHelmet}<script type="importmap">${importMap}</script><script defer type="module" src="/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js"></script>${headStyles}</head><body>${body}</body></html>\n`;
 
         const outFileHTML = path.resolve(
           STATIC_PATHNAME,

@@ -2,7 +2,7 @@
 
 import { collect, Command, Help, KWArg, Program, RequireAny } from 'jargs';
 
-import { DESCRIPTION, PROGRAM } from '../constants.js';
+import { DESCRIPTION, NAME } from '../constants.js';
 import buildStatic from './build/ssg.js';
 import devStatic from './dev/ssg.js';
 
@@ -21,14 +21,14 @@ collect(
       description: 'Show help and usage info',
     },
     Program(
-      PROGRAM,
+      NAME,
       {
         description: DESCRIPTION,
-        usage: `${PROGRAM} <command> [options]`,
+        usage: `${NAME} <command> [options]`,
         examples: [
-          `${PROGRAM} --help`,
-          `${PROGRAM} build`,
-          `${PROGRAM} build --renderer ssg`,
+          `${NAME} --help`,
+          `${NAME} build`,
+          `${NAME} build --renderer ssg`,
         ],
       },
       RequireAny(
@@ -36,8 +36,8 @@ collect(
           'build',
           {
             description: 'Build site for deployment',
-            usage: `${PROGRAM} build [options]`,
-            examples: [`${PROGRAM} build --renderer ssg`],
+            usage: `${NAME} build [options]`,
+            examples: [`${NAME} build --renderer ssg`],
             callback: (tree) => {
               if (
                 typeof tree.kwargs.renderer === 'undefined' ||
@@ -71,8 +71,8 @@ collect(
           'dev',
           {
             description: 'Serve site for development',
-            usage: `${PROGRAM} serve [options]`,
-            examples: [`${PROGRAM} serve --renderer ssg`],
+            usage: `${NAME} serve [options]`,
+            examples: [`${NAME} serve --renderer ssg`],
             callback: (tree) => {
               if (
                 typeof tree.kwargs.renderer === 'undefined' ||
