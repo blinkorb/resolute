@@ -7,10 +7,10 @@ export const CWD = process.cwd();
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
-export const RESOLUTE_PATHNAME = path.resolve(__dirname, '../');
+export const RESOLUTE_SRC_PATHNAME = path.resolve(__dirname, '../');
 
 export const RESOLUTE_VERSION = readPackageJsonVersion(
-  path.resolve(RESOLUTE_PATHNAME, '../package.json')
+  path.resolve(RESOLUTE_SRC_PATHNAME, '../package.json')
 );
 
 export const SRC_DIR = 'src/';

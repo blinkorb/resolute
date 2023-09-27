@@ -41,7 +41,7 @@ import {
   MATCHES_SERVER_STATIC_API,
   MATCHES_STATIC,
   PUBLIC_FILES_GLOB,
-  RESOLUTE_PATHNAME,
+  RESOLUTE_SRC_PATHNAME,
   RESOLUTE_VERSION,
   SERVER_PATHNAME,
   SRC_PATHNAME,
@@ -153,7 +153,7 @@ const buildStatic = async () => {
 
   // Copy resolute files
   await cpy(
-    path.resolve(RESOLUTE_PATHNAME, `**/*${GLOB_JS_EXTENSION}`),
+    path.resolve(RESOLUTE_SRC_PATHNAME, `**/*${GLOB_JS_EXTENSION}`),
     path.resolve(
       STATIC_PATHNAME,
       'node-modules',
