@@ -112,12 +112,13 @@ const buildStatic = async () => {
   compileTypeScript(srcFiles, SRC_PATHNAME, SERVER_PATHNAME);
 
   // All out files
-  const clientFiles = glob.sync(
+  const clientFiles = glob.sync([
     path.resolve(
       SERVER_PATHNAME,
       `**/*.{page,client,layout}${GLOB_JS_EXTENSION}`
-    )
-  );
+    ),
+    path.resolve(SERVER_PATHNAME, `resolute.settings${GLOB_JS_EXTENSION}`),
+  ]);
 
   const resoluteFiles = glob.sync(
     path.resolve(

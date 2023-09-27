@@ -112,3 +112,7 @@ export type AnyRequestHandler = RequestHandler<any>;
 export type ServerModule = Partial<Record<string, AnyRequestHandler>>;
 
 export type GetPropsResult<T extends () => void> = Awaited<ReturnType<T>>;
+
+export interface ResoluteSettings {
+  viewTransitions?: boolean;
+}

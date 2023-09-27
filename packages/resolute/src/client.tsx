@@ -3,7 +3,7 @@ import { createRoot, hydrateRoot, Root } from 'react-dom/client';
 
 import { MATCHES_TRAILING_SLASH } from './constants.js';
 import Page from './page.js';
-import { PageDataJSON } from './types.js';
+import { PageDataJSON, ResoluteSettings } from './types.js';
 import {
   getInjectedProps,
   getModuleElement,
@@ -12,6 +12,30 @@ import {
 import { getRouter } from './utils/location.js';
 import { getModule } from './utils/module.js';
 import { toTSX } from './utils/paths.js';
+
+let settings: ResoluteSettings = {};
+
+try {
+  settings =
+    (
+      await import(
+        `${(process.env.URL || '').replace(
+          MATCHES_TRAILING_SLASH,
+          '/'
+        )}resolute.settings.js`
+      )
+    ).default || {};
+} catch (error) {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('Failed to load resolute.settings.js');
+  }
+}
+
+declare global {
+  interface Document {
+    startViewTransition?: (callback: () => void) => void;
+  }
+}
 
 const history = {
   pushState: (data: unknown, title: string, url: string) => {
@@ -179,7 +203,16 @@ const loadPage = async (location: Location) => {
 };
 
 globalThis.addEventListener('popstate', () => {
-  loadPage(globalThis.location);
+  if (
+    settings.viewTransitions &&
+    typeof globalThis.document.startViewTransition === 'function'
+  ) {
+    globalThis.document.startViewTransition(() =>
+      loadPage(globalThis.location)
+    );
+  } else {
+    loadPage(globalThis.location);
+  }
 });
 
 loadPage(globalThis.location);
