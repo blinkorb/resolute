@@ -49,6 +49,7 @@ import {
   pathnameToRoute,
   toStaticNodeModulePath,
 } from '../utils/paths.js';
+import { extractSourceMap } from '../utils/source-maps.js';
 
 interface LayoutInfo {
   pathname: string;
@@ -245,6 +246,14 @@ const buildStatic = async () => {
       fs.writeFileSync(outPath, code, { encoding: 'utf8' });
     })
   );
+
+  const staticFiles = glob.sync(
+    path.resolve(STATIC_PATHNAME, `**/*${GLOB_JS_EXTENSION}`)
+  );
+
+  staticFiles.forEach((pathname) => {
+    extractSourceMap(pathname);
+  });
 
   // Get page, client, static, server, and layout files
   const componentFiles = glob.sync(
