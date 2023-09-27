@@ -117,4 +117,7 @@ export type GetPropsResult<T extends () => void> = Awaited<ReturnType<T>>;
 export interface ResoluteSettings {
   helmet?: Omit<HelmetProps, 'children'>;
   viewTransitions?: boolean;
+  preload?: {
+    cacheTimeout?: number;
+  };
 }
