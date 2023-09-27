@@ -72,13 +72,23 @@ interface StaticRenderer {
 }
 
 let prevPage: ClientRenderer | StaticRenderer | undefined;
+let latestLoaded: null | { id: string; time: number } = null;
 
 const loadPage = async (location: Location) => {
+  const id = `${location.pathname.replace(MATCHES_TRAILING_SLASH, '/')}${
+    location.search
+  }${location.hash}`;
+  const loadTime = Date.now();
+  latestLoaded = {
+    id,
+    time: loadTime,
+  };
+
   const resoluteClientJson: PageDataJSON | Error = await fetch(
     `${location.protocol}//${location.host}${location.pathname.replace(
       MATCHES_TRAILING_SLASH,
-      ''
-    )}/resolute.json`
+      '/'
+    )}resolute.json`
   )
     .then(async (response) => {
       if (response.ok) {
@@ -182,20 +192,25 @@ const loadPage = async (location: Location) => {
       </Page>
     );
 
-    if (prevPage?.root) {
-      prevPage.root.render(page);
-    } else if (prevPage?.static || pageModule.hydrate === false) {
-      const root = createRoot(globalThis.document.body);
-      root.render(page);
-      prevPage = {
-        root,
-      };
-    } else {
-      prevPage = {
-        root: hydrateRoot(globalThis.document.body, page),
-      };
+    if (id === latestLoaded.id || loadTime >= latestLoaded.time) {
+      if (prevPage?.root) {
+        prevPage.root.render(page);
+      } else if (prevPage?.static || pageModule.hydrate === false) {
+        const root = createRoot(globalThis.document.body);
+        root.render(page);
+        prevPage = {
+          root,
+        };
+      } else {
+        prevPage = {
+          root: hydrateRoot(globalThis.document.body, page),
+        };
+      }
     }
-  } else if ('static' in resoluteClientJson) {
+  } else if (
+    'static' in resoluteClientJson &&
+    (id === latestLoaded.id || loadTime >= latestLoaded.time)
+  ) {
     if (prevPage?.root) {
       prevPage.root.unmount();
     }
