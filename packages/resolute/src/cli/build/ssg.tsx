@@ -128,6 +128,7 @@ const buildStatic = async () => {
       (await import(path.resolve(SERVER_PATHNAME, 'resolute.settings.js')))
         .default || {};
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.warn('Failed to load resolute.settings.js');
   }
 

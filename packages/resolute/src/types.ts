@@ -1,5 +1,5 @@
-import { HelmetProps } from 'react-helmet';
 import { ComponentType, ReactElement, ReactNode } from 'react';
+import { HelmetProps } from 'react-helmet';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyObject = Record<string, any>;
