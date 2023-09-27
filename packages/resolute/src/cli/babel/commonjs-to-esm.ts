@@ -4,7 +4,8 @@ import path from 'node:path';
 import { PluginObj } from '@babel/core';
 import t from '@babel/types';
 
-import { MATCHES_JS_EXTENSION, MATCHES_LOCAL } from '../constants.js';
+import { MATCHES_JS_EXTENSION } from '../../constants.js';
+import { MATCHES_LOCAL } from '../constants.js';
 
 const commonjsToEsm: PluginObj = {
   visitor: {

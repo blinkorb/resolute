@@ -13,7 +13,19 @@ export const METHODS = [
   'delete',
   'options',
 ] as const satisfies readonly RequestMethod[];
+
+export const JS_EXTENSIONS = ['cjs', 'mjs', 'js'];
+
+export const MATCHES_JS_EXTENSION = new RegExp(
+  `\\.(?:${JS_EXTENSIONS.join('|')})$`
+);
+
+export const MATCHES_API = new RegExp(
+  `\\.api\\.(?:${JS_EXTENSIONS.join('|')})$`
+);
+
 export const MATCHES_TRAILING_SLASH = /\/?$/;
+
 export const DEFAULT_VIEW_TRANSITIONS = true;
 export const DEFAULT_PRELOAD_CACHE_TIMEOUT = 10000;
 export const DEFAULT_PRELOAD_ON_HOVER = true;
