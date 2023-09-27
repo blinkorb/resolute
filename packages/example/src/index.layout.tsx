@@ -53,6 +53,11 @@ const Navigation = () => {
             Hidden Route (helmet title)
           </Link>
         </li>
+        <li>
+          <Link className={styles.link} href="/markdown">
+            Markdown
+          </Link>
+        </li>
       </ul>
     </header>
   );
