@@ -89,7 +89,9 @@ const getElement = async (route: string, info: RouteInfo) => {
     const src = fs.readFileSync(info.markdown, { encoding: 'utf8' });
     const { content, metadata } = metadataParser(src);
 
-    const element = <ReactMarkdown>{content}</ReactMarkdown>;
+    const element = (
+      <ReactMarkdown {...settings.markdown}>{content}</ReactMarkdown>
+    );
 
     return {
       element,

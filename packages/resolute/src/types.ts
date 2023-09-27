@@ -1,5 +1,6 @@
-import { ComponentType, ReactElement, ReactNode } from 'react';
-import { HelmetProps } from 'react-helmet';
+import type { ComponentType, ReactElement, ReactNode } from 'react';
+import type { HelmetProps } from 'react-helmet';
+import type { Options } from 'react-markdown';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyObject = Record<string, any>;
@@ -122,6 +123,7 @@ export interface ResoluteSettings {
     onFocus?: boolean;
     cacheTimeout?: number;
   };
+  markdown?: Omit<Options, 'children'>;
 }
 
 export type PreloadFunction = (href: string) => void;
