@@ -10,6 +10,7 @@
 /scripts/*
 **/*.txt
 **/*.snap
+*.toml
 *.png
 *.svg
 *.jpg
@@ -24,4 +25,5 @@
 .npmignore
 .nvmrc
 .browserslistrc
+.env
 LICENSE.txt
