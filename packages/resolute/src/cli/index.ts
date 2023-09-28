@@ -4,7 +4,6 @@ import { collect, Command, Help, KWArg, Program, RequireAny } from 'jargs';
 
 import { DESCRIPTION, NAME } from '../constants.js';
 import buildStatic from './build/ssg.js';
-import devStatic from './dev/ssg.js';
 
 const RENDERER = KWArg('renderer', {
   alias: 'r',
@@ -78,7 +77,10 @@ collect(
                 typeof tree.kwargs.renderer === 'undefined' ||
                 tree.kwargs.renderer === 'ssg'
               ) {
-                return devStatic();
+                // eslint-disable-next-line no-console
+                console.error('Dev server is not yet supported');
+
+                return process.exit(1);
               }
 
               if (tree.kwargs.renderer === 'ssr') {
