@@ -5,6 +5,7 @@ import {
   DEFAULT_PRELOAD_CACHE_TIMEOUT,
   DEFAULT_PRELOAD_ON_FOCUS,
   DEFAULT_PRELOAD_ON_HOVER,
+  DEFAULT_TRANSITION_INITIAL_RENDER,
   DEFAULT_VIEW_TRANSITIONS,
   MATCHES_TRAILING_SLASH,
 } from './constants.js';
@@ -454,8 +455,13 @@ const loadPage = async (location: Location) => {
   );
 
   const cache = await pageCache.cache;
+  const initialRenderTransitions =
+    typeof settings.viewTransitions === 'object' &&
+    (settings.viewTransitions.initialRender ??
+      DEFAULT_TRANSITION_INITIAL_RENDER);
 
   if (
+    (prevPage || initialRenderTransitions) &&
     (settings.viewTransitions ?? DEFAULT_VIEW_TRANSITIONS) &&
     typeof globalThis.document.startViewTransition === 'function'
   ) {

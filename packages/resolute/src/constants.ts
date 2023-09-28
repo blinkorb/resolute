@@ -27,6 +27,7 @@ export const MATCHES_API = new RegExp(
 export const MATCHES_TRAILING_SLASH = /\/?$/;
 
 export const DEFAULT_VIEW_TRANSITIONS = true;
+export const DEFAULT_TRANSITION_INITIAL_RENDER = false;
 export const DEFAULT_PRELOAD_CACHE_TIMEOUT = 10000;
 export const DEFAULT_PRELOAD_ON_HOVER = true;
 export const DEFAULT_PRELOAD_ON_FOCUS = true;
