@@ -2,3 +2,8 @@
 from = "/*"
 to = "/404/"
 status = 404
+
+[[headers]]
+for = "/node-modules/*"
+[headers.values]
+cache-control = "max-age=31536000, immutable"
