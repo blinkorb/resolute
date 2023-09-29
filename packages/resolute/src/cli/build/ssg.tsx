@@ -603,7 +603,9 @@ const buildStatic = async () => {
         );
 
         const helmet = Helmet.renderStatic();
-        const headStyles = `<style type="text/css" data-jss>${sheets.toString()}</style>`;
+        const headStyles = `<style type="text/css" data-jss>${sheets.toString({
+          format: false,
+        })}</style>`;
 
         // Collect head info from helmet
         const headHelmet = [
