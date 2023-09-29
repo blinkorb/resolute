@@ -1,10 +1,25 @@
 import fs from 'node:fs';
 
-import { cruise, IDependency } from 'dependency-cruiser';
+import { cruise, IDependency, IModule } from 'dependency-cruiser';
 
 import { MATCHES_LOCAL, MATCHES_MODULE_SCOPE_AND_NAME } from '../constants.js';
 
-export const getAllDependencies = async (pathnames: string[]) => {
+export const uniqueDependency = (
+  dep: IDependency,
+  index: number,
+  context: readonly IDependency[]
+) => context.findIndex((other) => other.resolved === dep.resolved) === index;
+
+export const uniqueModule = (
+  mod: IModule,
+  index: number,
+  context: readonly IModule[]
+) => context.findIndex((m) => m.source === mod.source) === index;
+
+export const getAllDependencies = async (
+  pathnames: string[],
+  noFollow: boolean
+) => {
   const dependencies = await cruise(pathnames, {
     baseDir: process.cwd(),
     enhancedResolveOptions: {
@@ -12,6 +27,29 @@ export const getAllDependencies = async (pathnames: string[]) => {
       exportsFields: ['exports'],
       conditionNames: ['import', 'require', 'default'],
     },
+    ...(noFollow
+      ? {
+          doNotFollow: {
+            dependencyTypes: [
+              'aliased',
+              'core',
+              'deprecated',
+              'local',
+              'localmodule',
+              'npm',
+              'npm-bundled',
+              'npm-dev',
+              'npm-no-pkg',
+              'npm-optional',
+              'npm-peer',
+              'npm-unknown',
+              'undetermined',
+              'unknown',
+              'type-only',
+            ],
+          },
+        }
+      : {}),
   });
 
   const list = dependencies.output.modules

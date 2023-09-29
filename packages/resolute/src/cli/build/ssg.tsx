@@ -48,7 +48,12 @@ import {
   STATIC_PATHNAME,
 } from '../constants.js';
 import { compileBabel, compileTypeScript } from '../utils/compile.js';
-import { getAllDependencies, getVersionMap } from '../utils/deps.js';
+import {
+  getAllDependencies,
+  getVersionMap,
+  uniqueDependency,
+  uniqueModule,
+} from '../utils/deps.js';
 import {
   fromServerPathToRelativeTSX,
   isPartialRouteMatch,
@@ -204,7 +209,7 @@ const buildStatic = async () => {
 
   // Get all non-resolute client dependencies
   const { list: clientDependencies, modules: pageModules } =
-    await getAllDependencies(clientFiles);
+    await getAllDependencies(clientFiles, false);
   const nonResoluteClientDependencies = clientDependencies.filter(
     (dep) =>
       !MATCHES_RESOLUTE.test(dep.module) && !MATCHES_RESOLUTE.test(dep.resolved)
@@ -227,8 +232,8 @@ const buildStatic = async () => {
   });
 
   // Get all non-resolute resolute dependencies
-  const { list: resoluteDependencies } =
-    await getAllDependencies(resoluteFiles);
+  const { list: resoluteDependencies, modules: nodeModules } =
+    await getAllDependencies(resoluteFiles, false);
   const nonResoluteResoluteDependencies = resoluteDependencies.filter(
     (dep) =>
       !MATCHES_RESOLUTE.test(dep.module) && !MATCHES_RESOLUTE.test(dep.resolved)
@@ -238,10 +243,7 @@ const buildStatic = async () => {
   const uniqueDependencies = [
     ...nonResoluteClientDependencies,
     ...nonResoluteResoluteDependencies,
-  ].filter(
-    (dep, index, context) =>
-      context.findIndex((d) => d.resolved === dep.resolved) === index
-  );
+  ].filter(uniqueDependency);
 
   // Filter out node modules
   const clientLocalDependencies = uniqueDependencies.filter(
@@ -252,6 +254,40 @@ const buildStatic = async () => {
   const nodeModuleDependencies = uniqueDependencies.filter((dep) =>
     MATCHES_NODE_MODULE.test(dep.resolved)
   );
+
+  const { list: directDependencies } = await getAllDependencies(
+    [...clientFiles, ...resoluteFiles],
+    true
+  );
+  const directNodeModuleDependencies = directDependencies.filter(
+    (dep) =>
+      !MATCHES_LOCAL.test(dep.module) &&
+      !MATCHES_RESOLUTE.test(dep.module) &&
+      !MATCHES_RESOLUTE.test(dep.resolved)
+  );
+
+  const allUniqueModules = [...pageModules, ...nodeModules].filter(
+    uniqueModule
+  );
+
+  const sharedDependencies = uniqueDependencies.filter((dep) => {
+    const modulesContainingDep = allUniqueModules.filter((mod) =>
+      mod.dependencies.find((d) => d.resolved === dep.resolved)
+    );
+
+    return !MATCHES_LOCAL.test(dep.module) && modulesContainingDep.length > 1;
+  });
+
+  const sharedDependencyNames = sharedDependencies.map((dep) => dep.module);
+
+  console.log(sharedDependencyNames);
+
+  const nodeModulesToBundle = [
+    ...sharedDependencies,
+    ...directNodeModuleDependencies,
+  ].filter(uniqueDependency);
+
+  console.log(nodeModulesToBundle);
 
   const nodeModulesVersionMap = getVersionMap(nodeModuleDependencies);
 
