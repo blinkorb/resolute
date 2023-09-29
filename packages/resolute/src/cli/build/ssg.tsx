@@ -616,6 +616,8 @@ const buildStatic = async () => {
           .filter((str) => str)
           .join('\n');
 
+        const resoluteHref = `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/index.js`;
+
         // Construct import map
         const importMap = JSON.stringify({
           imports: nodeModuleDependencies
@@ -631,12 +633,36 @@ const buildStatic = async () => {
                 };
               },
               {
-                [SCOPED_NAME]: `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/index.js`,
+                [SCOPED_NAME]: resoluteHref,
               }
             ),
         });
 
-        const html = `<!DOCTYPE html><html><head>${headHelmet}<script type="importmap">${importMap}</script><script defer type="module" src="/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js"></script>${headStyles}</head><body>${body}</body></html>\n`;
+        const resoluteClient = `<script defer type="module" src="/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js"></script>`;
+        const modulePreload = ['react', 'react-dom', SCOPED_NAME]
+          .map((mod) => {
+            if (mod === SCOPED_NAME) {
+              return `<link rel="modulepreload" href="${resoluteHref}" />`;
+            }
+
+            const match = nodeModuleDependencies.find(
+              (dep) => dep.module === mod
+            );
+
+            if (!match) {
+              // eslint-disable-next-line no-console
+              console.error(`Could not resolve module "${mod}" for preloading`);
+              return process.exit(1);
+            }
+
+            return `<link rel="modulepreload" href="/${toStaticNodeModulePath(
+              match.resolved,
+              nodeModulesVersionMap
+            )}" />`;
+          })
+          .join('');
+
+        const html = `<!DOCTYPE html><html><head>${headHelmet}<script type="importmap">${importMap}</script>${modulePreload}${resoluteClient}${headStyles}</head><body>${body}</body></html>\n`;
 
         const outFileHTML = path.resolve(
           STATIC_PATHNAME,
