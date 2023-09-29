@@ -639,7 +639,21 @@ const buildStatic = async () => {
         });
 
         const resoluteClient = `<script defer type="module" src="/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js"></script>`;
-        const modulePreload = ['react', 'react-dom', SCOPED_NAME]
+        const modulePreload = [
+          SCOPED_NAME,
+          'react',
+          'react-dom/client',
+          'react-helmet',
+          'jss',
+          'react-jss',
+          ...nodeModuleDependencies
+            .filter(
+              (dep) =>
+                dep.module.startsWith('jss-plugin-') ||
+                dep.module.startsWith('jss-preset-')
+            )
+            .map((dep) => dep.module),
+        ]
           .map((mod) => {
             if (mod === SCOPED_NAME) {
               return `<link rel="modulepreload" href="${resoluteHref}" />`;
