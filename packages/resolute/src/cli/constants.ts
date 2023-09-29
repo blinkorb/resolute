@@ -51,9 +51,6 @@ export const MATCHES_SERVER_STATIC_API = new RegExp(
   `\\.(server|static|api)\\.(?:${JS_EXTENSIONS.join('|')})$`
 );
 
-export const MATCHES_MODULE_SCOPE_AND_NAME =
-  /^(@[a-z0-9_.-]+\/[a-z0-9_.-]+|[a-z0-9_.-]+)/;
-
 export const MATCHES_MARKDOWN_EXTENSION = new RegExp(
   `\\.(?:${MARKDOWN_EXTENSIONS.join('|')})$`
 );

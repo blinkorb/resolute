@@ -39,15 +39,3 @@ export const isPartialRouteMatch = (route: string, match: string) =>
   withLeadingAndTrailingSlash(route).startsWith(
     withLeadingAndTrailingSlash(match)
   );
-
-export const toStaticNodeModulePath = (
-  pathname: string,
-  nodeModulesVersionMap: Record<string, string>
-) => {
-  return pathname.replace(
-    /^.*node_modules\/(@[a-z0-9_.-]+\/[a-z0-9_.-]+|[a-z0-9_.-]+)(\/.+)/,
-    (_match, moduleName, rest) => {
-      return `node-modules/${moduleName}@${nodeModulesVersionMap[moduleName]}${rest}`;
-    }
-  );
-};
