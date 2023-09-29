@@ -36,7 +36,6 @@ import {
   MATCHES_LAYOUT,
   MATCHES_LOCAL,
   MATCHES_MARKDOWN_EXTENSION,
-  MATCHES_NODE_MODULE,
   MATCHES_PAGE,
   MATCHES_RESOLUTE,
   MATCHES_SERVER_STATIC_API,
@@ -218,7 +217,7 @@ const buildStatic = async () => {
   pageModules.forEach((mod) => {
     mod.dependencies.forEach((dep) => {
       if (
-        !MATCHES_NODE_MODULE.test(dep.resolved) &&
+        !dep.dependencyTypes.includes('npm') &&
         MATCHES_SERVER_STATIC_API.test(dep.resolved)
       ) {
         // eslint-disable-next-line no-console
@@ -246,7 +245,7 @@ const buildStatic = async () => {
 
   // Filter out node modules
   const clientLocalDependencies = uniqueDependencies.filter(
-    (dep) => !MATCHES_NODE_MODULE.test(dep.resolved)
+    (dep) => !dep.dependencyTypes.includes('npm')
   );
 
   const { list: directDependencies } = await getAllDependencies(
