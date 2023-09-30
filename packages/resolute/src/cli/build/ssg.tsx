@@ -14,7 +14,11 @@ import { createGenerateId, JssProvider, SheetsRegistry } from 'react-jss';
 import ReactMarkdown from 'react-markdown';
 import { rimrafSync } from 'rimraf';
 
-import { MATCHES_TRAILING_SLASH, SCOPED_NAME } from '../../constants.js';
+import {
+  MATCHES_TRAILING_SLASH,
+  SCOPED_CLIENT,
+  SCOPED_NAME,
+} from '../../constants.js';
 import { RequestMethod } from '../../index.js';
 import Page from '../../page.js';
 import { LayoutJSON, PageDataJSON, ResoluteSettings } from '../../types.js';
@@ -151,17 +155,6 @@ const buildStatic = async () => {
   // Copy public files
   await cpy(PUBLIC_FILES_GLOB, STATIC_PATHNAME);
 
-  // Copy resolute files
-  await cpy(
-    path.resolve(RESOLUTE_SRC_PATHNAME, `**/*${GLOB_JS_EXTENSION}`),
-    path.resolve(
-      STATIC_PATHNAME,
-      'node-modules',
-      `${SCOPED_NAME}@${RESOLUTE_VERSION}`
-    ),
-    { filter: (file) => !file.path.includes('/cli/') }
-  );
-
   // Copy markdown files
   await cpy(
     path.resolve(SRC_PATHNAME, `**/*${GLOB_MARKDOWN_EXTENSION}`),
@@ -195,20 +188,14 @@ const buildStatic = async () => {
     console.warn('Failed to load resolute.settings.js');
   }
 
-  const resoluteFiles = glob.sync(
-    path.resolve(
-      STATIC_PATHNAME,
-      `node-modules/${SCOPED_NAME}@*/**/*${GLOB_JS_EXTENSION}`
-    )
+  const resoluteClientFiles = glob.sync(
+    path.resolve(RESOLUTE_SRC_PATHNAME, `**/*${GLOB_JS_EXTENSION}`),
+    { ignore: path.resolve(RESOLUTE_SRC_PATHNAME, 'cli/**') }
   );
 
   // Get all non-resolute client dependencies
   const { list: clientDependencies, modules: pageModules } =
     await getAllDependencies(clientFiles);
-  const nonResoluteClientDependencies = clientDependencies.filter(
-    (dep) =>
-      !MATCHES_RESOLUTE.test(dep.module) && !MATCHES_RESOLUTE.test(dep.resolved)
-  );
 
   // Complain about server-side imports in client files
   pageModules.forEach((mod) => {
@@ -227,17 +214,13 @@ const buildStatic = async () => {
   });
 
   // Get all non-resolute resolute dependencies
-  const { list: resoluteDependencies } =
-    await getAllDependencies(resoluteFiles);
-  const nonResoluteResoluteDependencies = resoluteDependencies.filter(
-    (dep) =>
-      !MATCHES_RESOLUTE.test(dep.module) && !MATCHES_RESOLUTE.test(dep.resolved)
-  );
+  const { list: resoluteClientDependencies } =
+    await getAllDependencies(resoluteClientFiles);
 
   // De-duplicate dependencies
   const uniqueDependencies = [
-    ...nonResoluteClientDependencies,
-    ...nonResoluteResoluteDependencies,
+    ...clientDependencies,
+    ...resoluteClientDependencies,
   ].filter(
     (dep, index, context) =>
       context.findIndex((d) => d.resolved === dep.resolved) === index
@@ -245,19 +228,28 @@ const buildStatic = async () => {
 
   // Filter out node modules
   const clientLocalDependencies = uniqueDependencies.filter(
-    (dep) => !MATCHES_NODE_MODULE.test(dep.resolved)
+    (dep) =>
+      !MATCHES_NODE_MODULE.test(dep.resolved) &&
+      !MATCHES_RESOLUTE.test(dep.resolved)
   );
 
   // Filter only node modules
-  const nodeModuleDependencies = uniqueDependencies.filter((dep) =>
-    MATCHES_NODE_MODULE.test(dep.resolved)
+  const nodeModuleDependencies = uniqueDependencies.filter(
+    (dep) =>
+      MATCHES_NODE_MODULE.test(dep.resolved) ||
+      MATCHES_RESOLUTE.test(dep.resolved)
   );
 
-  const nodeModulesVersionMap = getVersionMap(nodeModuleDependencies);
+  const nodeModulesVersionMap = getVersionMap(
+    nodeModuleDependencies.filter((dep) =>
+      MATCHES_NODE_MODULE.test(dep.resolved)
+    )
+  );
 
   // Compile node modules with babel to handle env vars and dead code elimination
   await Promise.all(
     nodeModuleDependencies
+      .filter((dep) => !MATCHES_RESOLUTE.test(dep.resolved))
       .map((dep) => dep.resolved)
       .map(async (pathname) => {
         const outPath = path.resolve(
@@ -312,8 +304,13 @@ const buildStatic = async () => {
 
   // Compile resolute modules in place with babel to handle env vars and dead code elimination
   await Promise.all(
-    resoluteFiles.map(async (pathname) => {
-      const outPath = pathname;
+    resoluteClientFiles.map(async (pathname) => {
+      const outPath = path.resolve(
+        STATIC_PATHNAME,
+        'node-modules',
+        `${SCOPED_NAME}@${RESOLUTE_VERSION}`,
+        path.relative(RESOLUTE_SRC_PATHNAME, pathname)
+      );
 
       mkdirpSync(path.dirname(outPath));
       const content = fs.readFileSync(pathname, {
@@ -619,6 +616,7 @@ const buildStatic = async () => {
           .join('\n');
 
         const resoluteHref = `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/index.js`;
+        const resoluteClientHref = `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js`;
 
         // Construct import map
         const importMap = JSON.stringify({
@@ -636,13 +634,14 @@ const buildStatic = async () => {
               },
               {
                 [SCOPED_NAME]: resoluteHref,
+                [SCOPED_CLIENT]: resoluteClientHref,
               }
             ),
         });
 
-        const resoluteClient = `<script defer type="module" src="/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js"></script>`;
+        const resoluteClient = `<script defer type="module" src="${resoluteClientHref}"></script>`;
         const modulePreload =
-          `<link rel="modulepreload" href="${resoluteHref}" />` +
+          `<link rel="modulepreload" href="${resoluteHref}" /><link rel="modulepreload" href="${resoluteClientHref}" /><link rel="modulepreload" href="/resolute.settings.js" />` +
           nodeModuleDependencies
             .map((dep) => {
               return `<link rel="modulepreload" href="/${toStaticNodeModulePath(
