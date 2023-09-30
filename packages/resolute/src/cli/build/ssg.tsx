@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import cpy from 'cpy';
@@ -15,7 +16,11 @@ import { createGenerateId, JssProvider, SheetsRegistry } from 'react-jss';
 import ReactMarkdown from 'react-markdown';
 import { rimrafSync } from 'rimraf';
 
-import { MATCHES_TRAILING_SLASH, SCOPED_NAME } from '../../constants.js';
+import {
+  MATCHES_TRAILING_SLASH,
+  SCOPED_CLIENT,
+  SCOPED_NAME,
+} from '../../constants.js';
 import { RequestMethod } from '../../index.js';
 import Page from '../../page.js';
 import { LayoutJSON, PageDataJSON, ResoluteSettings } from '../../types.js';
@@ -29,20 +34,17 @@ import { getPageMeta } from '../../utils/meta.js';
 import { getModule } from '../../utils/module.js';
 import { toAPIPath } from '../../utils/paths.js';
 import {
+  CWD,
   GLOB_JS_EXTENSION,
   GLOB_MARKDOWN_EXTENSION,
   GLOB_SRC_EXTENSION,
   MATCHES_CLIENT,
   MATCHES_LAYOUT,
-  MATCHES_LOCAL,
   MATCHES_MARKDOWN_EXTENSION,
   MATCHES_PAGE,
-  MATCHES_RESOLUTE,
   MATCHES_SERVER_STATIC_API,
   MATCHES_STATIC,
   PUBLIC_FILES_GLOB,
-  RESOLUTE_SRC_PATHNAME,
-  RESOLUTE_VERSION,
   SERVER_PATHNAME,
   SRC_PATHNAME,
   STATIC_PATHNAME,
@@ -59,6 +61,23 @@ import {
   pathnameToRoute,
 } from '../utils/paths.js';
 import { extractSourceMap } from '../utils/source-maps.js';
+
+const require = createRequire(CWD);
+
+const FORCE_EXTRACTED_DEPENDENCIES = [
+  SCOPED_NAME,
+  SCOPED_CLIENT,
+  'react',
+  'react-dom',
+  'react-dom/client',
+].map((name) => ({
+  module: name,
+  resolved: require.resolve(name),
+  dependencyTypes: ['npm'],
+}));
+
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const RESOLUTE_BUILD_PATHNAME = path.resolve(__dirname, '../../');
 
 dotenvConfig();
 
@@ -154,17 +173,6 @@ const buildStatic = async () => {
   // Copy public files
   await cpy(PUBLIC_FILES_GLOB, STATIC_PATHNAME);
 
-  // Copy resolute files
-  await cpy(
-    path.resolve(RESOLUTE_SRC_PATHNAME, `**/*${GLOB_JS_EXTENSION}`),
-    path.resolve(
-      STATIC_PATHNAME,
-      'node-modules',
-      `${SCOPED_NAME}@${RESOLUTE_VERSION}`
-    ),
-    { filter: (file) => !file.path.includes('/cli/') }
-  );
-
   // Copy markdown files
   await cpy(
     path.resolve(SRC_PATHNAME, `**/*${GLOB_MARKDOWN_EXTENSION}`),
@@ -208,10 +216,6 @@ const buildStatic = async () => {
   // Get all non-resolute client dependencies
   const { list: clientDependencies, modules: pageModules } =
     await getAllDependencies(clientFiles, false);
-  const nonResoluteClientDependencies = clientDependencies.filter(
-    (dep) =>
-      !MATCHES_RESOLUTE.test(dep.module) && !MATCHES_RESOLUTE.test(dep.resolved)
-  );
 
   // Complain about server-side imports in client files
   pageModules.forEach((mod) => {
@@ -232,15 +236,12 @@ const buildStatic = async () => {
   // Get all non-resolute resolute dependencies
   const { list: resoluteDependencies, modules: nodeModules } =
     await getAllDependencies(resoluteFiles, false);
-  const nonResoluteResoluteDependencies = resoluteDependencies.filter(
-    (dep) =>
-      !MATCHES_RESOLUTE.test(dep.module) && !MATCHES_RESOLUTE.test(dep.resolved)
-  );
 
   // De-duplicate dependencies
   const uniqueDependencies = [
-    ...nonResoluteClientDependencies,
-    ...nonResoluteResoluteDependencies,
+    ...FORCE_EXTRACTED_DEPENDENCIES,
+    ...clientDependencies,
+    ...resoluteDependencies,
   ].filter(uniqueDependency);
 
   // Filter out node modules
@@ -252,23 +253,27 @@ const buildStatic = async () => {
     [...clientFiles, ...resoluteFiles],
     true
   );
-  const directNodeModuleDependencies = directDependencies.filter(
-    (dep) =>
-      !MATCHES_LOCAL.test(dep.module) &&
-      !MATCHES_RESOLUTE.test(dep.module) &&
-      !MATCHES_RESOLUTE.test(dep.resolved)
-  );
+  const directNodeModuleDependencies = [
+    ...FORCE_EXTRACTED_DEPENDENCIES,
+    ...directDependencies,
+  ].filter((dep) => dep.dependencyTypes.includes('npm'));
 
   const allUniqueModules = [...pageModules, ...nodeModules].filter(
     uniqueModule
   );
 
   const sharedDependencies = uniqueDependencies.filter((dep) => {
+    if (FORCE_EXTRACTED_DEPENDENCIES.find((d) => d.module === dep.module)) {
+      return true;
+    }
+
     const modulesContainingDep = allUniqueModules.filter((mod) =>
       mod.dependencies.find((d) => d.resolved === dep.resolved)
     );
 
-    return !MATCHES_LOCAL.test(dep.module) && modulesContainingDep.length > 1;
+    return (
+      dep.dependencyTypes.includes('npm') && modulesContainingDep.length > 1
+    );
   });
 
   const sharedDependencyNames = sharedDependencies.map((dep) => dep.module);
@@ -277,6 +282,11 @@ const buildStatic = async () => {
     ...sharedDependencies,
     ...directNodeModuleDependencies,
   ].filter(uniqueDependency);
+
+  console.log(
+    nodeModulesToBundle.map((dep) => dep.module),
+    sharedDependencies.map((dep) => dep.module)
+  );
 
   // Bundle node modules dependencies, excluding shared dependencies
   const nodeModuleMappingPairs = await Promise.all(
@@ -299,6 +309,9 @@ const buildStatic = async () => {
             name: 'babel',
             setup(build) {
               build.onLoad({ filter: /\.js$/ }, async (args) => {
+                const isResolute =
+                  args.path.startsWith(RESOLUTE_BUILD_PATHNAME) ||
+                  args.path.includes(SCOPED_NAME);
                 const content = fs.readFileSync(args.path, {
                   encoding: 'utf8',
                 });
@@ -307,8 +320,10 @@ const buildStatic = async () => {
                   contents: compileBabel(
                     content,
                     args.path,
-                    ['NODE_ENV'],
-                    true
+                    isResolute
+                      ? ['NODE_ENV', 'PORT', 'URL', 'API_URL']
+                      : ['NODE_ENV'],
+                    !isResolute
                   ),
                   loader: 'js',
                 };
@@ -318,7 +333,7 @@ const buildStatic = async () => {
         ],
       });
 
-      const outputJs = result.outputFiles?.find((f) => /\.js$/.test(f.path));
+      const outputJs = result.outputFiles.find((f) => /\.js$/.test(f.path));
 
       if (!outputJs) {
         throw new Error(`Could not get output js file for ${dep.module}`);
@@ -369,27 +384,6 @@ const buildStatic = async () => {
         fs.writeFileSync(outPath, code, { encoding: 'utf8' });
       }
     )
-  );
-
-  // Compile resolute modules in place with babel to handle env vars and dead code elimination
-  await Promise.all(
-    resoluteFiles.map(async (pathname) => {
-      const outPath = pathname;
-
-      mkdirpSync(path.dirname(outPath));
-      const content = fs.readFileSync(pathname, {
-        encoding: 'utf8',
-      });
-
-      const code = compileBabel(
-        content,
-        pathname,
-        ['NODE_ENV', 'PORT', 'URL', 'API_URL'],
-        false
-      );
-
-      fs.writeFileSync(outPath, code, { encoding: 'utf8' });
-    })
   );
 
   const staticFiles = glob.sync(
@@ -679,24 +673,29 @@ const buildStatic = async () => {
           .filter((str) => str)
           .join('\n');
 
-        const resoluteHref = `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/index.js`;
+        const resoluteClientMapping = nodeModuleMappingPairs.find(
+          ([name]) => name === SCOPED_CLIENT
+        );
+
+        if (!resoluteClientMapping) {
+          // eslint-disable-next-line no-console
+          console.error(
+            'Could not find resolute client in node module mapping'
+          );
+          return process.exit(1);
+        }
 
         // Construct import map
         const importMap = JSON.stringify({
-          imports: {
-            [SCOPED_NAME]: resoluteHref,
-            ...Object.fromEntries(nodeModuleMappingPairs),
-          },
+          imports: Object.fromEntries(nodeModuleMappingPairs),
         });
 
-        const resoluteClient = `<script defer type="module" src="/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js"></script>`;
-        const modulePreload =
-          `<link rel="modulepreload" href="${resoluteHref}" />` +
-          nodeModuleMappingPairs
-            .map(([, nodeModulePathname]) => {
-              return `<link rel="modulepreload" href="${nodeModulePathname}" />`;
-            })
-            .join('');
+        const resoluteClient = `<script defer type="module" src="${resoluteClientMapping[1]}"></script>`;
+        const modulePreload = nodeModuleMappingPairs
+          .map(([, nodeModulePathname]) => {
+            return `<link rel="modulepreload" href="${nodeModulePathname}" />`;
+          })
+          .join('');
 
         const html = `<!DOCTYPE html><html><head>${headHelmet}<script type="importmap">${importMap}</script>${modulePreload}${resoluteClient}${headStyles}</head><body>${body}</body></html>\n`;
 

@@ -1,17 +1,17 @@
-import fs from 'node:fs';
-
 import { cruise, IDependency, IModule } from 'dependency-cruiser';
 
+import { CWD } from '../constants.js';
+
 export const uniqueDependency = (
-  dep: IDependency,
+  dep: Pick<IDependency, 'resolved'>,
   index: number,
-  context: readonly IDependency[]
+  context: readonly Pick<IDependency, 'resolved'>[]
 ) => context.findIndex((other) => other.resolved === dep.resolved) === index;
 
 export const uniqueModule = (
-  mod: IModule,
+  mod: Pick<IModule, 'source'>,
   index: number,
-  context: readonly IModule[]
+  context: readonly Pick<IModule, 'source'>[]
 ) => context.findIndex((m) => m.source === mod.source) === index;
 
 export const getAllDependencies = async (
@@ -19,7 +19,7 @@ export const getAllDependencies = async (
   noFollow: boolean
 ) => {
   const dependencies = await cruise(pathnames, {
-    baseDir: process.cwd(),
+    baseDir: CWD,
     enhancedResolveOptions: {
       mainFields: ['module', 'main'],
       exportsFields: ['exports'],
@@ -66,28 +66,4 @@ export const getAllDependencies = async (
     modules: dependencies.output.modules,
     list,
   };
-};
-
-export const readPackageJsonVersion = (pathname: string) => {
-  if (!fs.existsSync(pathname)) {
-    throw new Error(`Could not read package.json at ${pathname}`);
-  }
-
-  const packageJson: unknown = JSON.parse(
-    fs.readFileSync(pathname, { encoding: 'utf-8' })
-  );
-
-  if (typeof packageJson !== 'object' || !packageJson) {
-    throw new Error(`Could not parse package.json at ${pathname}`);
-  }
-
-  if (!('version' in packageJson)) {
-    throw new Error(`Could not find version in package.json at ${pathname}`);
-  }
-
-  if (typeof packageJson.version !== 'string') {
-    throw new Error(`Could not parse version in package.json at ${pathname}`);
-  }
-
-  return packageJson.version;
 };

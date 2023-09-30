@@ -1,18 +1,8 @@
 import path from 'node:path';
-import url from 'node:url';
 
-import { JS_EXTENSIONS, NAME, SCOPE } from '../constants.js';
-import { readPackageJsonVersion } from './utils/deps.js';
+import { JS_EXTENSIONS } from '../constants.js';
 
 export const CWD = process.cwd();
-
-const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-
-export const RESOLUTE_SRC_PATHNAME = path.resolve(__dirname, '../');
-
-export const RESOLUTE_VERSION = readPackageJsonVersion(
-  path.resolve(RESOLUTE_SRC_PATHNAME, '../package.json')
-);
 
 export const SRC_EXTENSIONS = [...JS_EXTENSIONS, 'jsx', 'ts', 'tsx', 'mts'];
 export const MARKDOWN_EXTENSIONS = ['md', 'markdown'];
@@ -26,10 +16,6 @@ export const SERVER_PATHNAME = path.resolve(CWD, SERVER_DIR);
 export const PUBLIC_FILES_GLOB = 'public/**/*';
 
 export const MATCHES_LOCAL = /^[./]/;
-
-export const MATCHES_RESOLUTE = new RegExp(
-  `${SCOPE}\\/${NAME}|${NAME}\\/build`
-);
 
 export const MATCHES_PAGE = new RegExp(
   `\\.page\\.(?:${JS_EXTENSIONS.join('|')})$`

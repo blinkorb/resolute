@@ -3,6 +3,7 @@ import { RequestMethod } from './types.js';
 export const SCOPE = '@blinkorb';
 export const NAME = 'resolute';
 export const SCOPED_NAME = `${SCOPE}/${NAME}`;
+export const SCOPED_CLIENT = `${SCOPED_NAME}/client`;
 export const DESCRIPTION =
   'Bleeding edge React static/server side rendering framework';
 export const METHODS = [
