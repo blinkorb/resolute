@@ -6,6 +6,16 @@
   "bin": {
     "resolute": "./build/cli/index.js"
   },
+  "exports": {
+    ".": {
+      "import": "./build/index.js",
+      "require": "./build/index.js"
+    },
+    "./client": {
+      "import": "./build/client.js",
+      "require": "./build/client.js"
+    }
+  },
   "types": "./build/index.d.ts",
   "type": "module",
   "scripts": {
