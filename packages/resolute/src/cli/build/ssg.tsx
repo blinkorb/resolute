@@ -491,6 +491,14 @@ const buildStatic = async (watch?: boolean) => {
 
   app.use(express.static(STATIC_PATHNAME));
 
+  app.use('*', (req, res, next) => {
+    if (req.headers.accept?.includes('text/html')) {
+      return res.sendFile(path.resolve(STATIC_PATHNAME, '404/index.html'));
+    }
+
+    return next();
+  });
+
   // Setup API endpoints
   await Promise.all(
     glob
