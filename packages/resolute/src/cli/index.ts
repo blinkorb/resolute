@@ -77,10 +77,7 @@ collect(
                 typeof tree.kwargs.renderer === 'undefined' ||
                 tree.kwargs.renderer === 'ssg'
               ) {
-                // eslint-disable-next-line no-console
-                console.error('Dev server is not yet supported');
-
-                return process.exit(1);
+                return buildStatic(true);
               }
 
               if (tree.kwargs.renderer === 'ssr') {
