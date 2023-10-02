@@ -135,7 +135,7 @@ const getElement = async (route: string, info: RouteInfo) => {
   };
 };
 
-const buildStatic = async () => {
+const buildStatic = async (watch?: boolean) => {
   // eslint-disable-next-line no-console
   console.log('Building...');
 
@@ -489,6 +489,8 @@ const buildStatic = async () => {
 
   const app = express();
 
+  app.use(express.static(STATIC_PATHNAME));
+
   // Setup API endpoints
   await Promise.all(
     glob
@@ -690,10 +692,16 @@ const buildStatic = async () => {
     );
 
     // eslint-disable-next-line no-console
-    console.log(
-      `Built in ${((Date.now() - startTime) / 1000).toFixed(2)}s\nClosing...`
-    );
-    expressServer.close();
+    console.log(`Built in ${((Date.now() - startTime) / 1000).toFixed(2)}s`);
+    if (!watch) {
+      // eslint-disable-next-line no-console
+      console.log('Closing...');
+      expressServer.close();
+      return;
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(`Serving at http://localhost:${process.env.PORT}`);
   });
 };
 
