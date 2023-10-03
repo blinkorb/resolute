@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import cpy from 'cpy';
@@ -32,6 +33,7 @@ import { getPageMeta } from '../../utils/meta.js';
 import { getModule } from '../../utils/module.js';
 import { toAPIPath } from '../../utils/paths.js';
 import {
+  CWD,
   GLOB_JS_EXTENSION,
   GLOB_MARKDOWN_EXTENSION,
   GLOB_SRC_EXTENSION,
@@ -57,9 +59,11 @@ import {
   fromServerPathToRelativeTSX,
   isPartialRouteMatch,
   pathnameToRoute,
-  toStaticNodeModulePath,
+  toStaticPath,
 } from '../utils/paths.js';
 import { extractSourceMap } from '../utils/source-maps.js';
+
+const require = createRequire(import.meta.url);
 
 dotenvConfig();
 
@@ -254,7 +258,7 @@ const buildStatic = async (watch?: boolean) => {
       .map(async (pathname) => {
         const outPath = path.resolve(
           STATIC_PATHNAME,
-          toStaticNodeModulePath(pathname, nodeModulesVersionMap)
+          toStaticPath(pathname, nodeModulesVersionMap)
         );
 
         mkdirpSync(path.dirname(outPath));
@@ -533,6 +537,7 @@ const buildStatic = async (watch?: boolean) => {
   const expressServer = app.listen(process.env.PORT, async () => {
     await Promise.all(
       Object.entries(routeMappingWithLayouts).map(async ([route, info]) => {
+        const clientPathname = info.client || info.page;
         const { element, pageProps, meta, location, href, pathname } =
           await getElement(route, info);
 
@@ -565,15 +570,47 @@ const buildStatic = async (watch?: boolean) => {
               layoutsJSON: [
                 ...acc.layoutsJSON,
                 {
-                  pathname: path
-                    .relative(SERVER_PATHNAME, layout)
-                    .replace(/^(\.?\/)?/, '/'),
+                  pathname: layout,
                   props: layoutProps,
                 },
               ],
             };
           },
           Promise.resolve({ element, layoutsJSON: [] })
+        );
+
+        const pageFiles = [
+          require.resolve(SCOPED_CLIENT),
+          ...(clientPathname
+            ? [clientPathname, ...layoutsJSON.map((layout) => layout.pathname)]
+            : []),
+        ];
+
+        const { list: pageDependencies } = await getAllDependencies(pageFiles);
+
+        const uniquePageDependencies = [
+          {
+            // Manually included as this is a dynamic import
+            module: './resolute.settings.js',
+            resolved: 'server/resolute.settings.js',
+          },
+          // Include client file and layouts if it can be hydrated
+          ...(clientPathname
+            ? [
+                {
+                  module: `./${path.basename(clientPathname)}`,
+                  resolved: path.relative(CWD, clientPathname),
+                },
+                ...layoutsJSON.map((layout) => ({
+                  module: `./${path.basename(layout.pathname)}`,
+                  resolved: path.relative(CWD, layout.pathname),
+                })),
+              ]
+            : []),
+          ...pageDependencies,
+        ].filter(
+          (dep, index, context) =>
+            context.findIndex((d) => d.resolved === dep.resolved) === index
         );
 
         const throwNavigationError = () => {
@@ -625,41 +662,37 @@ const buildStatic = async (watch?: boolean) => {
           .filter((str) => str)
           .join('\n');
 
-        const resoluteHref = `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/index.js`;
         const resoluteClientHref = `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js`;
 
         // Construct import map
         const importMap = JSON.stringify({
-          imports: nodeModuleDependencies
+          imports: uniquePageDependencies
             .filter((dep) => !MATCHES_LOCAL.test(dep.module))
             .reduce(
               (acc, dep) => {
                 return {
                   ...acc,
-                  [dep.module]: `/${toStaticNodeModulePath(
+                  [dep.module]: `/${toStaticPath(
                     dep.resolved,
                     nodeModulesVersionMap
                   )}`,
                 };
               },
               {
-                [SCOPED_NAME]: resoluteHref,
                 [SCOPED_CLIENT]: resoluteClientHref,
               }
             ),
         });
 
         const resoluteClient = `<script defer type="module" src="${resoluteClientHref}"></script>`;
-        const modulePreload =
-          `<link rel="modulepreload" href="${resoluteHref}" /><link rel="modulepreload" href="/resolute.settings.js" />` +
-          nodeModuleDependencies
-            .map((dep) => {
-              return `<link rel="modulepreload" href="/${toStaticNodeModulePath(
-                dep.resolved,
-                nodeModulesVersionMap
-              )}" />`;
-            })
-            .join('');
+        const modulePreload = uniquePageDependencies
+          .map((dep) => {
+            return `<link rel="modulepreload" href="/${toStaticPath(
+              dep.resolved,
+              nodeModulesVersionMap
+            )}" />`;
+          })
+          .join('');
 
         const staticHead = `${headHelmet}${headStyles}<script type="importmap">${importMap}</script>${modulePreload}`;
 
@@ -674,13 +707,19 @@ const buildStatic = async (watch?: boolean) => {
         const outFileJSON = path.resolve(outDir, 'resolute.json');
 
         const json = (
-          info.client || info.page
+          clientPathname
             ? {
                 client: {
                   pathname: path
-                    .relative(SERVER_PATHNAME, info.client || info.page!)
+                    .relative(SERVER_PATHNAME, clientPathname)
                     .replace(/^(\.?\/)?/, '/'),
-                  layouts: layoutsJSON,
+                  layouts: layoutsJSON.map((layout) => ({
+                    ...layout,
+                    pathname: `/${path.relative(
+                      SERVER_PATHNAME,
+                      layout.pathname
+                    )}`,
+                  })),
                 },
                 static: {
                   head: staticHead,

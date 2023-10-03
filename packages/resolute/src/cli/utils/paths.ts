@@ -4,6 +4,7 @@ import path from 'node:path';
 import { SCOPED_NAME } from '../../constants.js';
 import { withLeadingAndTrailingSlash } from '../../utils/paths.js';
 import {
+  MATCHES_NODE_MODULE,
   MATCHES_RESOLUTE,
   RESOLUTE_VERSION,
   SERVER_PATHNAME,
@@ -46,7 +47,7 @@ export const isPartialRouteMatch = (route: string, match: string) =>
     withLeadingAndTrailingSlash(match)
   );
 
-export const toStaticNodeModulePath = (
+export const toStaticPath = (
   pathname: string,
   nodeModulesVersionMap: Record<string, string>
 ) => {
@@ -57,10 +58,18 @@ export const toStaticNodeModulePath = (
     );
   }
 
-  return pathname.replace(
-    /^.*node_modules\/(@[a-z0-9_.-]+\/[a-z0-9_.-]+|[a-z0-9_.-]+)(\/.+)/,
-    (_match, moduleName, rest) => {
-      return `node-modules/${moduleName}@${nodeModulesVersionMap[moduleName]}${rest}`;
-    }
-  );
+  if (MATCHES_NODE_MODULE.test(pathname)) {
+    return pathname.replace(
+      /^.*node_modules\/(@[a-z0-9_.-]+\/[a-z0-9_.-]+|[a-z0-9_.-]+)(\/.+)/,
+      (_match, moduleName, rest) => {
+        return `node-modules/${moduleName}@${nodeModulesVersionMap[moduleName]}${rest}`;
+      }
+    );
+  }
+
+  if (/^server\//.test(pathname)) {
+    return pathname.replace(/^server\//, '');
+  }
+
+  throw new Error(`Cannot convert pathname to static path: ${pathname}`);
 };
