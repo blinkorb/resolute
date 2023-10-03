@@ -326,6 +326,8 @@ const updatePage = async (
 
   if ('page' in cache) {
     if (id === latestLoaded.id || loadTime >= latestLoaded.time) {
+      globalThis.document.head.innerHTML = cache.resolutePageJson.static.head;
+
       const page =
         pageCache.id === id
           ? cache.page
