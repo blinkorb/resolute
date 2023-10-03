@@ -35,6 +35,7 @@ try {
   settings =
     (
       await import(
+        /*webpackIgnore: true*/
         `${(process.env.URL || '').replace(
           MATCHES_TRAILING_SLASH,
           '/'
@@ -478,3 +479,5 @@ globalThis.addEventListener('popstate', () => {
 });
 
 loadPage(globalThis.location);
+
+throw new Error('Client ran');

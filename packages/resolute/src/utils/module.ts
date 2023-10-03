@@ -13,7 +13,7 @@ export const assertModule: AssertUnknownObject = (module, pathname) => {
 };
 
 export const getModule = async (pathname: string) => {
-  const unknownModule: unknown = await import(pathname);
+  const unknownModule: unknown = await import(/*webpackIgnore: true*/ pathname);
 
   assertModule(unknownModule, pathname);
 

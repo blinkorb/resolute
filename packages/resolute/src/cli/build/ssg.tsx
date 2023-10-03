@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import cpy from 'cpy';
@@ -13,11 +14,11 @@ import { Helmet } from 'react-helmet';
 import { createGenerateId, JssProvider, SheetsRegistry } from 'react-jss';
 import ReactMarkdown from 'react-markdown';
 import { rimrafSync } from 'rimraf';
+import webpack from 'webpack';
 
 import {
+  MATCHES_JS_EXTENSION,
   MATCHES_TRAILING_SLASH,
-  SCOPED_CLIENT,
-  SCOPED_NAME,
 } from '../../constants.js';
 import { RequestMethod } from '../../index.js';
 import Page from '../../page.js';
@@ -32,34 +33,32 @@ import { getPageMeta } from '../../utils/meta.js';
 import { getModule } from '../../utils/module.js';
 import { toAPIPath } from '../../utils/paths.js';
 import {
+  BUILD_PATHNAME,
   GLOB_JS_EXTENSION,
   GLOB_MARKDOWN_EXTENSION,
+  GLOB_PUBLIC_FILES,
   GLOB_SRC_EXTENSION,
   MATCHES_CLIENT,
+  MATCHES_HASH_JS,
   MATCHES_LAYOUT,
-  MATCHES_LOCAL,
   MATCHES_MARKDOWN_EXTENSION,
   MATCHES_NODE_MODULE,
   MATCHES_PAGE,
-  MATCHES_RESOLUTE,
   MATCHES_SERVER_STATIC_API,
   MATCHES_STATIC,
-  PUBLIC_FILES_GLOB,
   RESOLUTE_SRC_PATHNAME,
-  RESOLUTE_VERSION,
-  SERVER_PATHNAME,
   SRC_PATHNAME,
   STATIC_PATHNAME,
 } from '../constants.js';
-import { compileBabel, compileTypeScript } from '../utils/compile.js';
-import { getAllDependencies, getVersionMap } from '../utils/deps.js';
+import { compileTypeScript } from '../utils/compile.js';
+import { getAllDependencies } from '../utils/deps.js';
 import {
-  fromServerPathToRelativeTSX,
+  fromCompiledPathToRelativeTSX,
   isPartialRouteMatch,
   pathnameToRoute,
-  toStaticNodeModulePath,
 } from '../utils/paths.js';
-import { extractSourceMap } from '../utils/source-maps.js';
+
+const require = createRequire(import.meta.url);
 
 dotenvConfig();
 
@@ -121,7 +120,7 @@ const getElement = async (route: string, info: RouteInfo) => {
 
   const element = await getModuleElement(
     pageModule,
-    fromServerPathToRelativeTSX(pathname),
+    fromCompiledPathToRelativeTSX(pathname),
     withInjectedProps
   );
 
@@ -133,6 +132,21 @@ const getElement = async (route: string, info: RouteInfo) => {
     href,
     pathname,
   };
+};
+
+const getBundledPathname = (
+  relativePathname: string,
+  relativePathnames: readonly string[]
+) => {
+  const matchingFile = relativePathnames.find(
+    (p) => p.replace(MATCHES_HASH_JS, '.js') === relativePathname
+  );
+
+  if (!matchingFile) {
+    throw new Error(`Could not find hashed bundle for ${relativePathname}`);
+  }
+
+  return `/${matchingFile}`;
 };
 
 const buildStatic = async (watch?: boolean) => {
@@ -148,17 +162,22 @@ const buildStatic = async (watch?: boolean) => {
   ).replace(MATCHES_TRAILING_SLASH, '');
   process.env.API_URL = process.env.API_URL || `${process.env.URL}/api/`;
 
+  // eslint-disable-next-line no-console
+  console.log('Clearing directories...');
   // Clear out dir
+  rimrafSync(BUILD_PATHNAME);
   rimrafSync(STATIC_PATHNAME);
-  rimrafSync(SERVER_PATHNAME);
 
+  // eslint-disable-next-line no-console
+  console.log('Copying public files...');
   // Copy public files
-  await cpy(PUBLIC_FILES_GLOB, STATIC_PATHNAME);
+  await cpy(GLOB_PUBLIC_FILES, STATIC_PATHNAME);
 
-  // Copy markdown files
+  // eslint-disable-next-line no-console
+  console.log('Copying markdown files...');
   await cpy(
     path.resolve(SRC_PATHNAME, `**/*${GLOB_MARKDOWN_EXTENSION}`),
-    SERVER_PATHNAME
+    path.resolve(BUILD_PATHNAME, 'compiled')
   );
 
   // Get src files
@@ -166,36 +185,152 @@ const buildStatic = async (watch?: boolean) => {
     path.resolve(SRC_PATHNAME, `**/*${GLOB_SRC_EXTENSION}`)
   );
 
+  // eslint-disable-next-line no-console
+  console.log('Compiling typescript...');
   // Compile src files
-  compileTypeScript(srcFiles, SRC_PATHNAME, SERVER_PATHNAME);
+  compileTypeScript(
+    srcFiles,
+    SRC_PATHNAME,
+    path.resolve(BUILD_PATHNAME, 'compiled')
+  );
+
+  // eslint-disable-next-line no-console
+  console.log('Copying resolute files...');
+  await cpy(
+    path.resolve(RESOLUTE_SRC_PATHNAME, `**/*${GLOB_JS_EXTENSION}`),
+    path.resolve(BUILD_PATHNAME, 'compiled', 'resolute'),
+    { filter: (file) => !file.path.includes('/cli/') }
+  );
 
   // All out files
   const clientFiles = glob.sync([
     path.resolve(
-      SERVER_PATHNAME,
+      BUILD_PATHNAME,
+      'compiled',
       `**/*.{page,client,layout}${GLOB_JS_EXTENSION}`
     ),
-    path.resolve(SERVER_PATHNAME, `resolute.settings${GLOB_JS_EXTENSION}`),
+    path.resolve(
+      BUILD_PATHNAME,
+      'compiled',
+      `resolute.settings${GLOB_JS_EXTENSION}`
+    ),
   ]);
+
+  const resoluteClientPathname = path.resolve(
+    BUILD_PATHNAME,
+    'compiled',
+    'resolute',
+    'client.js'
+  );
+
+  // eslint-disable-next-line no-console
+  console.log('Bundling files...');
+  const relativeBundlePaths = await new Promise<readonly string[]>(
+    (resolve) => {
+      webpack(
+        {
+          entry: {
+            ...Object.fromEntries(
+              [resoluteClientPathname, ...clientFiles].map((pathname) => [
+                path
+                  .relative(path.resolve(BUILD_PATHNAME, 'compiled'), pathname)
+                  .replace(MATCHES_JS_EXTENSION, ''),
+                pathname,
+              ])
+            ),
+          },
+          devtool: false,
+          module: {
+            rules: [
+              {
+                test: /\.js$/,
+                enforce: 'pre',
+                use: [require.resolve('source-map-loader')],
+              },
+            ],
+          },
+          plugins: [
+            new webpack.SourceMapDevToolPlugin({
+              filename: '[file].map',
+              noSources: false,
+              sourceRoot: path.resolve(BUILD_PATHNAME, 'compiled'),
+            }),
+          ],
+          output: {
+            path: path.resolve(BUILD_PATHNAME, 'bundled'),
+            filename: '[name].[contenthash].js',
+            module: true,
+          },
+          optimization: {
+            minimize: true,
+            splitChunks: {
+              chunks: 'all',
+              filename: 'chunk.[contenthash].js',
+            },
+          },
+          experiments: {
+            outputModule: true,
+          },
+        },
+        (error, stats) => {
+          if (error) {
+            // eslint-disable-next-line no-console
+            console.error(error);
+            return process.exit(1);
+          }
+
+          if (!stats) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to get bundle stats');
+            return process.exit(1);
+          }
+
+          // eslint-disable-next-line no-console
+          console.log(
+            `Bundled code in ${(
+              (stats.endTime - stats.startTime) /
+              1000
+            ).toFixed(2)}s`
+          );
+
+          resolve(
+            [...stats.compilation.emittedAssets.values()].filter((asset) =>
+              asset.endsWith('.js')
+            )
+          );
+        }
+      );
+    }
+  );
+
+  await cpy(path.resolve(BUILD_PATHNAME, 'bundled', `**/*`), STATIC_PATHNAME);
+
+  const resoluteClientPath = relativeBundlePaths.find(
+    (pathname) =>
+      pathname.replace(MATCHES_HASH_JS, '.js') === 'resolute/client.js'
+  );
+
+  if (!resoluteClientPath) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to find resolute client bundle');
+    return process.exit(1);
+  }
 
   // Load settings
   try {
     settings =
-      (await import(path.resolve(SERVER_PATHNAME, 'resolute.settings.js')))
-        .default || {};
+      (
+        await import(
+          path.resolve(BUILD_PATHNAME, 'compiled', 'resolute.settings.js')
+        )
+      ).default || {};
   } catch (error) {
     // eslint-disable-next-line no-console
     console.warn('Failed to load resolute.settings.js');
   }
 
-  const resoluteClientFiles = glob.sync(
-    path.resolve(RESOLUTE_SRC_PATHNAME, `**/*${GLOB_JS_EXTENSION}`),
-    { ignore: path.resolve(RESOLUTE_SRC_PATHNAME, 'cli/**') }
-  );
-
   // Get all non-resolute client dependencies
-  const { list: clientDependencies, modules: pageModules } =
-    await getAllDependencies(clientFiles);
+  const { modules: pageModules } = await getAllDependencies(clientFiles);
 
   // Complain about server-side imports in client files
   pageModules.forEach((mod) => {
@@ -213,142 +348,22 @@ const buildStatic = async (watch?: boolean) => {
     });
   });
 
-  // Get all non-resolute resolute dependencies
-  const { list: resoluteClientDependencies } =
-    await getAllDependencies(resoluteClientFiles);
-
-  // De-duplicate dependencies
-  const uniqueDependencies = [
-    ...clientDependencies,
-    ...resoluteClientDependencies,
-  ].filter(
-    (dep, index, context) =>
-      context.findIndex((d) => d.resolved === dep.resolved) === index
-  );
-
-  // Filter out node modules
-  const clientLocalDependencies = uniqueDependencies.filter(
-    (dep) =>
-      !MATCHES_NODE_MODULE.test(dep.resolved) &&
-      !MATCHES_RESOLUTE.test(dep.resolved)
-  );
-
-  // Filter only node modules
-  const nodeModuleDependencies = uniqueDependencies.filter(
-    (dep) =>
-      MATCHES_NODE_MODULE.test(dep.resolved) ||
-      MATCHES_RESOLUTE.test(dep.resolved)
-  );
-
-  const nodeModulesVersionMap = getVersionMap(
-    nodeModuleDependencies.filter((dep) =>
-      MATCHES_NODE_MODULE.test(dep.resolved)
-    )
-  );
-
-  // Compile node modules with babel to handle env vars and dead code elimination
-  await Promise.all(
-    nodeModuleDependencies
-      .filter((dep) => !MATCHES_RESOLUTE.test(dep.resolved))
-      .map((dep) => dep.resolved)
-      .map(async (pathname) => {
-        const outPath = path.resolve(
-          STATIC_PATHNAME,
-          toStaticNodeModulePath(pathname, nodeModulesVersionMap)
-        );
-
-        mkdirpSync(path.dirname(outPath));
-        const content = fs.readFileSync(pathname, {
-          encoding: 'utf8',
-        });
-
-        const code = compileBabel(content, pathname, ['NODE_ENV'], true);
-
-        fs.writeFileSync(outPath, code, { encoding: 'utf8' });
-      })
-  );
-
-  // Compile client modules with babel to handle env vars and dead code elimination
-  await Promise.all(
-    [...clientFiles, ...clientLocalDependencies.map((dep) => dep.resolved)].map(
-      async (pathname) => {
-        const outPath = path.resolve(
-          STATIC_PATHNAME,
-          path.relative(SERVER_PATHNAME, pathname)
-        );
-
-        mkdirpSync(path.dirname(outPath));
-        const content = fs.readFileSync(pathname, {
-          encoding: 'utf8',
-        });
-
-        const code = compileBabel(
-          content,
-          pathname,
-          [
-            'NODE_ENV',
-            'PORT',
-            'URL',
-            'API_URL',
-            ...Object.keys(process.env).filter((key) =>
-              key.startsWith('CLIENT_')
-            ),
-          ],
-          false
-        );
-
-        fs.writeFileSync(outPath, code, { encoding: 'utf8' });
-      }
-    )
-  );
-
-  // Compile resolute modules in place with babel to handle env vars and dead code elimination
-  await Promise.all(
-    resoluteClientFiles.map(async (pathname) => {
-      const outPath = path.resolve(
-        STATIC_PATHNAME,
-        'node-modules',
-        `${SCOPED_NAME}@${RESOLUTE_VERSION}`,
-        path.relative(RESOLUTE_SRC_PATHNAME, pathname)
-      );
-
-      mkdirpSync(path.dirname(outPath));
-      const content = fs.readFileSync(pathname, {
-        encoding: 'utf8',
-      });
-
-      const code = compileBabel(
-        content,
-        pathname,
-        ['NODE_ENV', 'PORT', 'URL', 'API_URL'],
-        false
-      );
-
-      fs.writeFileSync(outPath, code, { encoding: 'utf8' });
-    })
-  );
-
-  const staticFiles = glob.sync(
-    path.resolve(STATIC_PATHNAME, `**/*${GLOB_JS_EXTENSION}`)
-  );
-
-  staticFiles.forEach((pathname) => {
-    extractSourceMap(pathname);
-  });
-
+  // eslint-disable-next-line no-console
+  console.log('Collecting routes...');
   // Get page, client, static, server, and layout files
   const componentFiles = glob.sync([
     path.resolve(
-      SERVER_PATHNAME,
+      BUILD_PATHNAME,
+      'compiled',
       `**/*.{page,client,static,server,layout}${GLOB_JS_EXTENSION}`
     ),
-    path.resolve(SERVER_PATHNAME, `**/*${GLOB_MARKDOWN_EXTENSION}`),
+    path.resolve(BUILD_PATHNAME, 'compiled', `**/*${GLOB_MARKDOWN_EXTENSION}`),
   ]);
 
   // Construct routes from component pathnames
   const componentRoutes = componentFiles.map((pathname) => ({
     pathname,
-    route: pathnameToRoute(pathname, SERVER_PATHNAME),
+    route: pathnameToRoute(pathname, path.resolve(BUILD_PATHNAME, 'compiled')),
   }));
 
   // Collect components related to specific routes
@@ -502,7 +517,9 @@ const buildStatic = async (watch?: boolean) => {
   // Setup API endpoints
   await Promise.all(
     glob
-      .sync(path.resolve(SERVER_PATHNAME, `**/*.api${GLOB_JS_EXTENSION}`))
+      .sync(
+        path.resolve(BUILD_PATHNAME, 'compiled', `**/*.api${GLOB_JS_EXTENSION}`)
+      )
       .map(async (pathname) => {
         const serverModule = await getModule(pathname);
 
@@ -513,7 +530,7 @@ const buildStatic = async (watch?: boolean) => {
             const [, methodName] = match;
 
             const resolvedPathname = `/api/${toAPIPath(
-              path.relative(SERVER_PATHNAME, pathname),
+              path.relative(path.resolve(BUILD_PATHNAME, 'compiled'), pathname),
               fn
             )}`;
 
@@ -533,6 +550,7 @@ const buildStatic = async (watch?: boolean) => {
   const expressServer = app.listen(process.env.PORT, async () => {
     await Promise.all(
       Object.entries(routeMappingWithLayouts).map(async ([route, info]) => {
+        const clientComp = info.client || info.page;
         const { element, pageProps, meta, location, href, pathname } =
           await getElement(route, info);
 
@@ -549,7 +567,7 @@ const buildStatic = async (watch?: boolean) => {
             const layoutProps = await getProps(layoutModule, layout);
             const layoutElement = await getModuleElement(
               layoutModule,
-              fromServerPathToRelativeTSX(layout),
+              fromCompiledPathToRelativeTSX(layout),
               getInjectedProps(
                 layoutModule,
                 pathname,
@@ -565,9 +583,10 @@ const buildStatic = async (watch?: boolean) => {
               layoutsJSON: [
                 ...acc.layoutsJSON,
                 {
-                  pathname: path
-                    .relative(SERVER_PATHNAME, layout)
-                    .replace(/^(\.?\/)?/, '/'),
+                  pathname: path.relative(
+                    path.resolve(BUILD_PATHNAME, 'compiled'),
+                    layout
+                  ),
                   props: layoutProps,
                 },
               ],
@@ -625,43 +644,26 @@ const buildStatic = async (watch?: boolean) => {
           .filter((str) => str)
           .join('\n');
 
-        const resoluteHref = `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/index.js`;
-        const resoluteClientHref = `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js`;
+        const resoluteClient = `<script defer type="module" src="/${resoluteClientPath}"></script>`;
+        const modulePreload = clientComp
+          ? [...info.layouts, clientComp]
+              .map((comp) => {
+                const relative = path.relative(
+                  path.resolve(BUILD_PATHNAME, 'compiled'),
+                  comp
+                );
 
-        // Construct import map
-        const importMap = JSON.stringify({
-          imports: nodeModuleDependencies
-            .filter((dep) => !MATCHES_LOCAL.test(dep.module))
-            .reduce(
-              (acc, dep) => {
-                return {
-                  ...acc,
-                  [dep.module]: `/${toStaticNodeModulePath(
-                    dep.resolved,
-                    nodeModulesVersionMap
-                  )}`,
-                };
-              },
-              {
-                [SCOPED_NAME]: resoluteHref,
-                [SCOPED_CLIENT]: resoluteClientHref,
-              }
-            ),
-        });
+                return getBundledPathname(relative, relativeBundlePaths);
+              })
+              .map((relativePathname) => {
+                return `<link rel="modulepreload" href="${relativePathname}">`;
+              })
+              .join('')
+          : '';
 
-        const resoluteClient = `<script defer type="module" src="${resoluteClientHref}"></script>`;
-        const modulePreload =
-          `<link rel="modulepreload" href="${resoluteHref}" /><link rel="modulepreload" href="${resoluteClientHref}" /><link rel="modulepreload" href="/resolute.settings.js" />` +
-          nodeModuleDependencies
-            .map((dep) => {
-              return `<link rel="modulepreload" href="/${toStaticNodeModulePath(
-                dep.resolved,
-                nodeModulesVersionMap
-              )}" />`;
-            })
-            .join('');
+        const staticHead = `${headHelmet}${modulePreload}${headStyles}`;
 
-        const html = `<!DOCTYPE html><html><head>${headHelmet}<script type="importmap">${importMap}</script>${modulePreload}${resoluteClient}${headStyles}</head><body>${body}</body></html>\n`;
+        const html = `<!DOCTYPE html><html><head>${staticHead}${resoluteClient}</head><body>${body}</body></html>\n`;
 
         const outFileHTML = path.resolve(
           STATIC_PATHNAME,
@@ -672,21 +674,32 @@ const buildStatic = async (watch?: boolean) => {
         const outFileJSON = path.resolve(outDir, 'resolute.json');
 
         const json = (
-          info.client || info.page
+          clientComp
             ? {
                 client: {
-                  pathname: path
-                    .relative(SERVER_PATHNAME, info.client || info.page!)
-                    .replace(/^(\.?\/)?/, '/'),
-                  layouts: layoutsJSON,
+                  pathname: getBundledPathname(
+                    path.relative(
+                      path.resolve(BUILD_PATHNAME, 'compiled'),
+                      clientComp
+                    ),
+                    relativeBundlePaths
+                  ),
+                  layouts: layoutsJSON.map((layout) => ({
+                    pathname: getBundledPathname(
+                      layout.pathname,
+                      relativeBundlePaths
+                    ),
+                    props: layout.props,
+                  })),
                 },
                 static: {
+                  head: staticHead,
                   meta,
                   props: pageProps,
                 },
               }
             : {
-                static: { head: `${headHelmet}${headStyles}`, body },
+                static: { head: staticHead, body },
               }
         ) satisfies PageDataJSON;
 
