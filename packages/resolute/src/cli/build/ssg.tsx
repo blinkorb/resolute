@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import cpy from 'cpy';
@@ -14,7 +15,11 @@ import { createGenerateId, JssProvider, SheetsRegistry } from 'react-jss';
 import ReactMarkdown from 'react-markdown';
 import { rimrafSync } from 'rimraf';
 
-import { MATCHES_TRAILING_SLASH, SCOPED_NAME } from '../../constants.js';
+import {
+  MATCHES_TRAILING_SLASH,
+  SCOPED_CLIENT,
+  SCOPED_NAME,
+} from '../../constants.js';
 import { RequestMethod } from '../../index.js';
 import Page from '../../page.js';
 import { LayoutJSON, PageDataJSON, ResoluteSettings } from '../../types.js';
@@ -28,6 +33,7 @@ import { getPageMeta } from '../../utils/meta.js';
 import { getModule } from '../../utils/module.js';
 import { toAPIPath } from '../../utils/paths.js';
 import {
+  CWD,
   GLOB_JS_EXTENSION,
   GLOB_MARKDOWN_EXTENSION,
   GLOB_SRC_EXTENSION,
@@ -53,9 +59,11 @@ import {
   fromServerPathToRelativeTSX,
   isPartialRouteMatch,
   pathnameToRoute,
-  toStaticNodeModulePath,
+  toStaticPath,
 } from '../utils/paths.js';
 import { extractSourceMap } from '../utils/source-maps.js';
+
+const require = createRequire(import.meta.url);
 
 dotenvConfig();
 
@@ -131,7 +139,7 @@ const getElement = async (route: string, info: RouteInfo) => {
   };
 };
 
-const buildStatic = async () => {
+const buildStatic = async (watch?: boolean) => {
   // eslint-disable-next-line no-console
   console.log('Building...');
 
@@ -150,17 +158,6 @@ const buildStatic = async () => {
 
   // Copy public files
   await cpy(PUBLIC_FILES_GLOB, STATIC_PATHNAME);
-
-  // Copy resolute files
-  await cpy(
-    path.resolve(RESOLUTE_SRC_PATHNAME, `**/*${GLOB_JS_EXTENSION}`),
-    path.resolve(
-      STATIC_PATHNAME,
-      'node-modules',
-      `${SCOPED_NAME}@${RESOLUTE_VERSION}`
-    ),
-    { filter: (file) => !file.path.includes('/cli/') }
-  );
 
   // Copy markdown files
   await cpy(
@@ -195,20 +192,14 @@ const buildStatic = async () => {
     console.warn('Failed to load resolute.settings.js');
   }
 
-  const resoluteFiles = glob.sync(
-    path.resolve(
-      STATIC_PATHNAME,
-      `node-modules/${SCOPED_NAME}@*/**/*${GLOB_JS_EXTENSION}`
-    )
+  const resoluteClientFiles = glob.sync(
+    path.resolve(RESOLUTE_SRC_PATHNAME, `**/*${GLOB_JS_EXTENSION}`),
+    { ignore: path.resolve(RESOLUTE_SRC_PATHNAME, 'cli/**') }
   );
 
   // Get all non-resolute client dependencies
   const { list: clientDependencies, modules: pageModules } =
     await getAllDependencies(clientFiles);
-  const nonResoluteClientDependencies = clientDependencies.filter(
-    (dep) =>
-      !MATCHES_RESOLUTE.test(dep.module) && !MATCHES_RESOLUTE.test(dep.resolved)
-  );
 
   // Complain about server-side imports in client files
   pageModules.forEach((mod) => {
@@ -227,17 +218,13 @@ const buildStatic = async () => {
   });
 
   // Get all non-resolute resolute dependencies
-  const { list: resoluteDependencies } =
-    await getAllDependencies(resoluteFiles);
-  const nonResoluteResoluteDependencies = resoluteDependencies.filter(
-    (dep) =>
-      !MATCHES_RESOLUTE.test(dep.module) && !MATCHES_RESOLUTE.test(dep.resolved)
-  );
+  const { list: resoluteClientDependencies } =
+    await getAllDependencies(resoluteClientFiles);
 
   // De-duplicate dependencies
   const uniqueDependencies = [
-    ...nonResoluteClientDependencies,
-    ...nonResoluteResoluteDependencies,
+    ...clientDependencies,
+    ...resoluteClientDependencies,
   ].filter(
     (dep, index, context) =>
       context.findIndex((d) => d.resolved === dep.resolved) === index
@@ -245,24 +232,33 @@ const buildStatic = async () => {
 
   // Filter out node modules
   const clientLocalDependencies = uniqueDependencies.filter(
-    (dep) => !MATCHES_NODE_MODULE.test(dep.resolved)
+    (dep) =>
+      !MATCHES_NODE_MODULE.test(dep.resolved) &&
+      !MATCHES_RESOLUTE.test(dep.resolved)
   );
 
   // Filter only node modules
-  const nodeModuleDependencies = uniqueDependencies.filter((dep) =>
-    MATCHES_NODE_MODULE.test(dep.resolved)
+  const nodeModuleDependencies = uniqueDependencies.filter(
+    (dep) =>
+      MATCHES_NODE_MODULE.test(dep.resolved) ||
+      MATCHES_RESOLUTE.test(dep.resolved)
   );
 
-  const nodeModulesVersionMap = getVersionMap(nodeModuleDependencies);
+  const nodeModulesVersionMap = getVersionMap(
+    nodeModuleDependencies.filter((dep) =>
+      MATCHES_NODE_MODULE.test(dep.resolved)
+    )
+  );
 
   // Compile node modules with babel to handle env vars and dead code elimination
   await Promise.all(
     nodeModuleDependencies
+      .filter((dep) => !MATCHES_RESOLUTE.test(dep.resolved))
       .map((dep) => dep.resolved)
       .map(async (pathname) => {
         const outPath = path.resolve(
           STATIC_PATHNAME,
-          toStaticNodeModulePath(pathname, nodeModulesVersionMap)
+          toStaticPath(pathname, nodeModulesVersionMap)
         );
 
         mkdirpSync(path.dirname(outPath));
@@ -312,8 +308,13 @@ const buildStatic = async () => {
 
   // Compile resolute modules in place with babel to handle env vars and dead code elimination
   await Promise.all(
-    resoluteFiles.map(async (pathname) => {
-      const outPath = pathname;
+    resoluteClientFiles.map(async (pathname) => {
+      const outPath = path.resolve(
+        STATIC_PATHNAME,
+        'node-modules',
+        `${SCOPED_NAME}@${RESOLUTE_VERSION}`,
+        path.relative(RESOLUTE_SRC_PATHNAME, pathname)
+      );
 
       mkdirpSync(path.dirname(outPath));
       const content = fs.readFileSync(pathname, {
@@ -492,6 +493,16 @@ const buildStatic = async () => {
 
   const app = express();
 
+  app.use(express.static(STATIC_PATHNAME));
+
+  app.use('*', (req, res, next) => {
+    if (req.headers.accept?.includes('text/html')) {
+      return res.sendFile(path.resolve(STATIC_PATHNAME, '404/index.html'));
+    }
+
+    return next();
+  });
+
   // Setup API endpoints
   await Promise.all(
     glob
@@ -526,6 +537,7 @@ const buildStatic = async () => {
   const expressServer = app.listen(process.env.PORT, async () => {
     await Promise.all(
       Object.entries(routeMappingWithLayouts).map(async ([route, info]) => {
+        const clientPathname = info.client || info.page;
         const { element, pageProps, meta, location, href, pathname } =
           await getElement(route, info);
 
@@ -558,15 +570,47 @@ const buildStatic = async () => {
               layoutsJSON: [
                 ...acc.layoutsJSON,
                 {
-                  pathname: path
-                    .relative(SERVER_PATHNAME, layout)
-                    .replace(/^(\.?\/)?/, '/'),
+                  pathname: layout,
                   props: layoutProps,
                 },
               ],
             };
           },
           Promise.resolve({ element, layoutsJSON: [] })
+        );
+
+        const pageFiles = [
+          require.resolve(SCOPED_CLIENT),
+          ...(clientPathname
+            ? [clientPathname, ...layoutsJSON.map((layout) => layout.pathname)]
+            : []),
+        ];
+
+        const { list: pageDependencies } = await getAllDependencies(pageFiles);
+
+        const uniquePageDependencies = [
+          {
+            // Manually included as this is a dynamic import
+            module: './resolute.settings.js',
+            resolved: 'server/resolute.settings.js',
+          },
+          // Include client file and layouts if it can be hydrated
+          ...(clientPathname
+            ? [
+                {
+                  module: `./${path.basename(clientPathname)}`,
+                  resolved: path.relative(CWD, clientPathname),
+                },
+                ...layoutsJSON.map((layout) => ({
+                  module: `./${path.basename(layout.pathname)}`,
+                  resolved: path.relative(CWD, layout.pathname),
+                })),
+              ]
+            : []),
+          ...pageDependencies,
+        ].filter(
+          (dep, index, context) =>
+            context.findIndex((d) => d.resolved === dep.resolved) === index
         );
 
         const throwNavigationError = () => {
@@ -603,7 +647,9 @@ const buildStatic = async () => {
         );
 
         const helmet = Helmet.renderStatic();
-        const headStyles = `<style type="text/css" data-jss>${sheets.toString()}</style>`;
+        const headStyles = `<style type="text/css" data-jss>${sheets.toString({
+          format: false,
+        })}</style>`;
 
         // Collect head info from helmet
         const headHelmet = [
@@ -616,6 +662,8 @@ const buildStatic = async () => {
           .filter((str) => str)
           .join('\n');
 
+        const resoluteClientHref = `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js`;
+
         // Construct import map
         const importMap = JSON.stringify({
           imports: nodeModuleDependencies
@@ -624,19 +672,31 @@ const buildStatic = async () => {
               (acc, dep) => {
                 return {
                   ...acc,
-                  [dep.module]: `/${toStaticNodeModulePath(
+                  [dep.module]: `/${toStaticPath(
                     dep.resolved,
                     nodeModulesVersionMap
                   )}`,
                 };
               },
               {
-                [SCOPED_NAME]: `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/index.js`,
+                [SCOPED_CLIENT]: resoluteClientHref,
               }
             ),
         });
 
-        const html = `<!DOCTYPE html><html><head>${headHelmet}<script type="importmap">${importMap}</script><script defer type="module" src="/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js"></script>${headStyles}</head><body>${body}</body></html>\n`;
+        const resoluteClient = `<script defer type="module" src="${resoluteClientHref}"></script>`;
+        const modulePreload = uniquePageDependencies
+          .map((dep) => {
+            return `<link rel="modulepreload" href="/${toStaticPath(
+              dep.resolved,
+              nodeModulesVersionMap
+            )}" />`;
+          })
+          .join('');
+
+        const staticHead = `${headHelmet}${headStyles}<script type="importmap">${importMap}</script>${modulePreload}`;
+
+        const html = `<!DOCTYPE html><html><head>${staticHead}${resoluteClient}</head><body>${body}</body></html>\n`;
 
         const outFileHTML = path.resolve(
           STATIC_PATHNAME,
@@ -647,21 +707,28 @@ const buildStatic = async () => {
         const outFileJSON = path.resolve(outDir, 'resolute.json');
 
         const json = (
-          info.client || info.page
+          clientPathname
             ? {
                 client: {
                   pathname: path
-                    .relative(SERVER_PATHNAME, info.client || info.page!)
+                    .relative(SERVER_PATHNAME, clientPathname)
                     .replace(/^(\.?\/)?/, '/'),
-                  layouts: layoutsJSON,
+                  layouts: layoutsJSON.map((layout) => ({
+                    ...layout,
+                    pathname: `/${path.relative(
+                      SERVER_PATHNAME,
+                      layout.pathname
+                    )}`,
+                  })),
                 },
                 static: {
+                  head: staticHead,
                   meta,
                   props: pageProps,
                 },
               }
             : {
-                static: { head: `${headHelmet}${headStyles}`, body },
+                static: { head: staticHead, body },
               }
         ) satisfies PageDataJSON;
 
@@ -675,10 +742,16 @@ const buildStatic = async () => {
     );
 
     // eslint-disable-next-line no-console
-    console.log(
-      `Built in ${((Date.now() - startTime) / 1000).toFixed(2)}s\nClosing...`
-    );
-    expressServer.close();
+    console.log(`Built in ${((Date.now() - startTime) / 1000).toFixed(2)}s`);
+    if (!watch) {
+      // eslint-disable-next-line no-console
+      console.log('Closing...');
+      expressServer.close();
+      return;
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(`Serving at http://localhost:${process.env.PORT}`);
   });
 };
 
