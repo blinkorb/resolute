@@ -79,6 +79,7 @@ export interface PageDataJSONClient {
     layouts: readonly LayoutJSON[];
   };
   static: {
+    head: string;
     meta: PageMeta;
     props?: UnknownObject;
   };

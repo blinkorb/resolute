@@ -1,11 +1,4 @@
-import { createRequire } from 'node:module';
-
-import { transformSync } from '@babel/core';
 import ts from 'typescript';
-
-import commonjsToEsm from '../babel/commonjs-to-esm.js';
-
-const require = createRequire(import.meta.url);
 
 export const compileTypeScript = (
   fileNames: string[],
@@ -59,38 +52,4 @@ export const compileTypeScript = (
     );
     return process.exit(1);
   }
-};
-
-export const compileBabel = (
-  content: string,
-  pathname: string,
-  envVars: readonly string[],
-  commonjs: boolean
-) => {
-  const babelResult = transformSync(content, {
-    filename: pathname,
-    plugins: [
-      [
-        require.resolve('babel-plugin-transform-inline-environment-variables'),
-        { include: envVars },
-      ],
-      require.resolve('babel-plugin-minify-dead-code-elimination'),
-      ...(commonjs ? [commonjsToEsm] : []),
-      ...(commonjs ? [require.resolve('babel-plugin-transform-commonjs')] : []),
-    ],
-    minified: true,
-    sourceMaps: 'inline',
-  });
-
-  if (!babelResult) {
-    throw new Error(`No babel result for "${pathname}"`);
-  }
-
-  const { code } = babelResult;
-
-  if (typeof code !== 'string') {
-    throw new Error(`No babel code for "${pathname}"`);
-  }
-
-  return code;
 };
