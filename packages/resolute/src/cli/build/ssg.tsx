@@ -666,7 +666,7 @@ const buildStatic = async (watch?: boolean) => {
 
         // Construct import map
         const importMap = JSON.stringify({
-          imports: uniquePageDependencies
+          imports: nodeModuleDependencies
             .filter((dep) => !MATCHES_LOCAL.test(dep.module))
             .reduce(
               (acc, dep) => {
