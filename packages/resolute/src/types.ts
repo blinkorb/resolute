@@ -81,6 +81,7 @@ export interface PageDataJSONClient {
   static: {
     meta: PageMeta;
     props?: UnknownObject;
+    head: string;
   };
 }
 

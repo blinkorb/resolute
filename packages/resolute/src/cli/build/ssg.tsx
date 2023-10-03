@@ -651,7 +651,7 @@ const buildStatic = async (watch?: boolean) => {
 
         const resoluteClient = `<script defer type="module" src="${resoluteClientHref}"></script>`;
         const modulePreload =
-          `<link rel="modulepreload" href="${resoluteHref}" /><link rel="modulepreload" href="${resoluteClientHref}" /><link rel="modulepreload" href="/resolute.settings.js" />` +
+          `<link rel="modulepreload" href="${resoluteHref}" /><link rel="modulepreload" href="/resolute.settings.js" />` +
           nodeModuleDependencies
             .map((dep) => {
               return `<link rel="modulepreload" href="/${toStaticNodeModulePath(
@@ -661,7 +661,9 @@ const buildStatic = async (watch?: boolean) => {
             })
             .join('');
 
-        const html = `<!DOCTYPE html><html><head>${headHelmet}<script type="importmap">${importMap}</script>${modulePreload}${resoluteClient}${headStyles}</head><body>${body}</body></html>\n`;
+        const staticHead = `${headHelmet}${headStyles}<script type="importmap">${importMap}</script>${modulePreload}`;
+
+        const html = `<!DOCTYPE html><html><head>${staticHead}${resoluteClient}</head><body>${body}</body></html>\n`;
 
         const outFileHTML = path.resolve(
           STATIC_PATHNAME,
@@ -681,12 +683,13 @@ const buildStatic = async (watch?: boolean) => {
                   layouts: layoutsJSON,
                 },
                 static: {
+                  head: staticHead,
                   meta,
                   props: pageProps,
                 },
               }
             : {
-                static: { head: `${headHelmet}${headStyles}`, body },
+                static: { head: staticHead, body },
               }
         ) satisfies PageDataJSON;
 
