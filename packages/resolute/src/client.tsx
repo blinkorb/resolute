@@ -106,8 +106,6 @@ type CachedPage =
     }
   | {
       resolutePageJson: PageDataJSONStatic;
-      head: string;
-      body: string;
     }
   | Error;
 
@@ -243,7 +241,6 @@ const loadModule = async (location: Location | URL, router: Router) => {
   } else if ('static' in resolutePageJson) {
     return {
       resolutePageJson,
-      ...resolutePageJson.static,
     };
   }
 
@@ -370,8 +367,8 @@ const updatePage = async (
     }
 
     if (prevPage) {
-      globalThis.document.head.innerHTML = cache.head;
-      globalThis.document.body.innerHTML = cache.body;
+      globalThis.document.head.innerHTML = cache.resolutePageJson.static.head;
+      globalThis.document.body.innerHTML = cache.resolutePageJson.static.body;
 
       reFocusActiveElement(
         globalThis.document.body,
