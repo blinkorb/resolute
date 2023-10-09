@@ -5,6 +5,7 @@
 /packages/*/node_modules/*
 /packages/*/coverage/*
 /packages/*/static/*
+/packages/*/server/*
 /packages/*/build/*
 /packages/*/dist/*
 /.vscode/*

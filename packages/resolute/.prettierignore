@@ -1,16 +1,12 @@
 /coverage/*
 /build/*
 /dist/*
-/packages/*/coverage/*
-/packages/*/static/*
-/packages/*/server/*
-/packages/*/build/*
-/packages/*/dist/*
+/static/*
+/server/*
 /.vscode/*
 /scripts/*
 **/*.txt
 **/*.snap
-*.toml
 *.png
 *.svg
 *.jpg
@@ -25,5 +21,4 @@
 .npmignore
 .nvmrc
 .browserslistrc
-.env
 LICENSE.txt

@@ -94,6 +94,11 @@
     "@typescript-eslint/no-shadow": 2,
     "no-restricted-globals": [
       "error",
+      "window",
+      "document",
+      "history",
+      "dispatchEvent",
+      "require",
       "postMessage",
       "blur",
       "focus",
@@ -282,7 +287,8 @@
         "additionalHooks": "(useRequestAnimationFrame)"
       }
     ],
-    "react/prop-types": 0
+    "react/prop-types": 0,
+    "react/no-unescaped-entities": 0
   },
   "overrides": [
     {

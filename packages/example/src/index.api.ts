@@ -1,6 +1,6 @@
 import { RequestHandler } from '@blinkorb/resolute';
 
-import { AboutData as AboutData, getAboutData } from './about.server.js';
+import { AboutData as AboutData, getAboutData } from './about/index.api.js';
 
 export interface Event {
   slug: string;

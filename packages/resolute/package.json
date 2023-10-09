@@ -2,17 +2,28 @@
   "name": "@blinkorb/resolute",
   "version": "0.0.0",
   "description": "Bleeding edge React static/server side rendering framework",
-  "main": "src/index.ts",
+  "main": "./build/index.js",
   "bin": {
-    "resolute": "./src/cli/index.ts"
+    "resolute": "./build/cli/index.js"
   },
+  "exports": {
+    ".": {
+      "import": "./build/index.js",
+      "require": "./build/index.js"
+    },
+    "./client": {
+      "import": "./build/client.js",
+      "require": "./build/client.js"
+    }
+  },
+  "types": "./build/index.d.ts",
   "type": "module",
   "scripts": {
-    "build-static": "ts-node-esm --files ./src/cli/index.ts build static",
+    "build": "rm -rf build && tsc --noEmit false --declaration --inlineSourceMap --inlineSources && chmod +x ./build/cli/index.js",
     "typecheck": "tsc --noEmit",
     "format-check": "prettier --check '**/*'",
     "format": "prettier --write '**/*'",
-    "lint": "eslint '**/*.{ts,tsx,js,jsx}'",
+    "lint": "eslint './src/**/*.{ts,tsx,js,jsx}'",
     "tests": "jest --coverage --runInBand",
     "test": "npm run typecheck && npm run format-check && npm run lint && npm run tests"
   },
@@ -38,16 +49,28 @@
   },
   "homepage": "https://github.com/blinkorb/resolute#readme",
   "dependencies": {
+    "@babel/core": "^7.22.15",
+    "@babel/types": "^7.22.19",
+    "@types/babel__core": "^7.20.1",
     "@types/express": "^4.17.17",
     "@types/react": "^18.2.18",
     "@types/react-dom": "^18.2.7",
+    "babel-plugin-minify-dead-code-elimination": "^0.5.2",
+    "babel-plugin-transform-commonjs": "^1.1.6",
+    "babel-plugin-transform-inline-environment-variables": "^0.4.4",
+    "cpy": "^10.1.0",
+    "dependency-cruiser": "^13.1.5",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "glob": "^10.3.3",
-    "jargs": "^1.0.0-alpha.0",
+    "jargs": "^1.0.0-alpha.1",
+    "markdown-yaml-metadata-parser": "^3.0.0",
     "mkdirp": "^3.0.1",
     "query-string": "^8.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-jss": "^10.10.0",
+    "react-markdown": "^9.0.0",
     "rimraf": "^5.0.1"
   },
   "peerDependencies": {
@@ -58,6 +81,18 @@
     "typescript": "^5.2.2"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.4",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
+    "eslint": "^8.49.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-simple-import-sort": "^10.0.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.0.3",
+    "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1"
   }
 }

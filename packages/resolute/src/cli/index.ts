@@ -1,10 +1,16 @@
-#! /usr/bin/env npx ts-node-esm --files
+#! /usr/bin/env -S node --enable-source-maps
 
-import { collect, Command, Help, Program, RequireAny, Required } from 'jargs';
+import { collect, Command, Help, KWArg, Program, RequireAny } from 'jargs';
 
-import { DESCRIPTION, PROGRAM } from '../constants.js';
-import buildStatic from './build/static.js';
-import serveStatic from './serve/static.js';
+import { DESCRIPTION, NAME } from '../constants.js';
+import buildStatic from './build/ssg.js';
+
+const RENDERER = KWArg('renderer', {
+  alias: 'r',
+  description:
+    'The renderer used for the output files. ssg will output plain HTML files, and ssr will output a Node.js server.',
+  options: ['ssg', 'ssr'],
+});
 
 collect(
   Help(
@@ -14,44 +20,86 @@ collect(
       description: 'Show help and usage info',
     },
     Program(
-      PROGRAM,
+      NAME,
       {
         description: DESCRIPTION,
-        usage: `${PROGRAM} <command> [options]`,
-        examples: [`${PROGRAM} --help`, `${PROGRAM} static`],
+        usage: `${NAME} <command> [options]`,
+        examples: [
+          `${NAME} --help`,
+          `${NAME} build`,
+          `${NAME} build --renderer ssg`,
+        ],
       },
       RequireAny(
         Command(
           'build',
           {
             description: 'Build site for deployment',
-            usage: `${PROGRAM} build [options]`,
-            examples: [`${PROGRAM} build static`],
+            usage: `${NAME} build [options]`,
+            examples: [`${NAME} build --renderer ssg`],
+            callback: (tree) => {
+              if (
+                typeof tree.kwargs.renderer === 'undefined' ||
+                tree.kwargs.renderer === 'ssg'
+              ) {
+                return buildStatic();
+              }
+
+              if (tree.kwargs.renderer === 'ssr') {
+                // eslint-disable-next-line no-console
+                console.error('Server-side rendering is not yet supported');
+
+                return process.exit(1);
+              }
+
+              // eslint-disable-next-line no-console
+              console.error(
+                `Unknown renderer: ${
+                  tree.kwargs.renderer
+                }. Renderer must be one of: ${RENDERER.options.options?.join(
+                  ', '
+                )}`
+              );
+
+              return process.exit(1);
+            },
           },
-          Required(
-            Command('static', {
-              description: 'Build a static site',
-              usage: `${PROGRAM} static [options]`,
-              examples: [`${PROGRAM} static`],
-              callback: buildStatic,
-            })
-          )
+          RENDERER
         ),
         Command(
-          'serve',
+          'dev',
           {
             description: 'Serve site for development',
-            usage: `${PROGRAM} serve [options]`,
-            examples: [`${PROGRAM} serve static`],
+            usage: `${NAME} serve [options]`,
+            examples: [`${NAME} serve --renderer ssg`],
+            callback: (tree) => {
+              if (
+                typeof tree.kwargs.renderer === 'undefined' ||
+                tree.kwargs.renderer === 'ssg'
+              ) {
+                return buildStatic(true);
+              }
+
+              if (tree.kwargs.renderer === 'ssr') {
+                // eslint-disable-next-line no-console
+                console.error('Server-side rendering is not yet supported');
+
+                return process.exit(1);
+              }
+
+              // eslint-disable-next-line no-console
+              console.error(
+                `Unknown renderer: ${
+                  tree.kwargs.renderer
+                }. Renderer must be one of: ${RENDERER.options.options?.join(
+                  ', '
+                )}`
+              );
+
+              return process.exit(1);
+            },
           },
-          Required(
-            Command('static', {
-              description: 'Serve a static site',
-              usage: `${PROGRAM} static [options]`,
-              examples: [`${PROGRAM} static`],
-              callback: serveStatic,
-            })
-          )
+          RENDERER
         )
       )
     )
