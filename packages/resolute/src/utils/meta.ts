@@ -1,19 +1,19 @@
+import { SUPPORTED_META } from '../constants.js';
 import { PageMeta, UnknownObject } from '../types.js';
-
-const getTitle = (pageModule: UnknownObject, pathname: string) => {
-  const { title } = pageModule;
-  if (typeof title !== 'string' && typeof title !== 'number') {
-    throw new Error(`Title must be a string or number in "${pathname}"`);
-  }
-
-  return title.toString();
-};
 
 export const getPageMeta = (pageModule: UnknownObject, pathname: string) => {
   const meta: PageMeta = {};
 
-  if ('title' in pageModule) {
-    meta.title = getTitle(pageModule, pathname);
+  for (const metaName of SUPPORTED_META) {
+    if (metaName in pageModule) {
+      const value = pageModule[metaName];
+
+      if (typeof value !== 'string') {
+        throw new Error(`Meta "${metaName}" must be a string in "${pathname}"`);
+      }
+
+      meta[metaName] = value;
+    }
   }
 
   return meta;

@@ -1,4 +1,4 @@
-import { RequestMethod } from './types.js';
+import { PageMeta, RequestMethod } from './types.js';
 
 export const SCOPE = '@blinkorb';
 export const NAME = 'resolute';
@@ -32,3 +32,16 @@ export const DEFAULT_TRANSITION_INITIAL_RENDER = false;
 export const DEFAULT_PRELOAD_CACHE_TIMEOUT = 60 * 1000;
 export const DEFAULT_PRELOAD_ON_HOVER = true;
 export const DEFAULT_PRELOAD_ON_FOCUS = true;
+
+export const SUPPORTED_META = [
+  'title',
+  'description',
+  'ogTitle',
+  'ogDescription',
+  'ogImage',
+  'ogVideo',
+  'ogUrl',
+  'ogType',
+  'ogLocale',
+  'ogSiteName',
+] as const satisfies readonly (keyof PageMeta)[];

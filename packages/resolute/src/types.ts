@@ -21,6 +21,15 @@ export type AssertUnknownObject = (
 
 export interface PageMeta {
   title?: string;
+  description?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  ogVideo?: string;
+  ogUrl?: string;
+  ogType?: string;
+  ogLocale?: string;
+  ogSiteName?: string;
 }
 
 export type Renderer = 'client' | 'static' | 'server';
