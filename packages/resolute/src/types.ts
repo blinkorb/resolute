@@ -19,9 +19,39 @@ export type AssertUnknownObject = (
   pathname: string
 ) => asserts module is UnknownObject;
 
-export interface PageMeta {
-  title?: string;
+export interface AllowedMetaTypes {
+  title: ['string'];
+  description: ['string'];
+  ogTitle: ['string'];
+  ogDescription: ['string'];
+  ogImage: ['string'];
+  ogVideo: ['string'];
+  ogUrl: ['string'];
+  ogType: ['string'];
+  ogLocale: ['string'];
+  ogSiteName: ['string'];
 }
+
+export interface TypeOfMap {
+  string: string;
+  number: number;
+  bigint: bigint;
+  boolean: boolean;
+  symbol: symbol;
+  undefined: undefined;
+  object: object;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function: (...args: readonly any[]) => void;
+}
+
+export type TypeOf = keyof TypeOfMap;
+
+export type GetMetaType<T extends keyof AllowedMetaTypes> =
+  TypeOfMap[AllowedMetaTypes[T][number]];
+
+export type PageMeta = {
+  [P in keyof AllowedMetaTypes]?: GetMetaType<P>;
+};
 
 export type Renderer = 'client' | 'static' | 'server';
 

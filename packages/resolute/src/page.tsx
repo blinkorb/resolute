@@ -13,6 +13,7 @@ import {
   Router,
 } from './types.js';
 import { isBrowser } from './utils/environment.js';
+import { SUPPORTED_META } from './utils/meta.js';
 
 export interface PageProps {
   location: LocationInfo;
@@ -51,7 +52,11 @@ const Page = ({
       <PreloadProvider preload={preload}>
         <RouterProvider location={location} router={router}>
           <Helmet {...settings.helmet}>
-            {meta.title ? <title>{meta.title}</title> : <title />}
+            {SUPPORTED_META.map(({ key, fallback, render }) => {
+              const value =
+                meta[key] ?? (fallback ? meta[fallback] : undefined);
+              return typeof value !== 'undefined' ? render(value) : null;
+            })}
             <meta
               name="viewport"
               content="width=device-width, initial-scale=1"

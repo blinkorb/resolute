@@ -6,6 +6,8 @@ const fetch = createAPI<typeof import('./index.api.js')>('/');
 export const getProps = () => fetch('get');
 
 export const title = 'Home';
+export const ogTitle = 'OG Title';
+export const description = 'Description & OG Description';
 
 const Home = ({ about, events }: GetPropsResult<typeof getProps>) => {
   return (
