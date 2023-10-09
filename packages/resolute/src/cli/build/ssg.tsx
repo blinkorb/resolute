@@ -721,7 +721,7 @@ const buildStatic = async (watch?: boolean) => {
 
           const staticHead = `${headHelmet}${importMap}${modulePreload}${headStyles}`;
 
-          const html = `<!DOCTYPE html><html><head>${staticHead}${resoluteClient}</head><body>${body}</body></html>\n`;
+          const html = `<!DOCTYPE html><html><head>${staticHead}${resoluteClient}</head><body data-render-state="rendering">${body}</body></html>\n`;
 
           const outFileHTML = path.resolve(
             STATIC_PATHNAME,
