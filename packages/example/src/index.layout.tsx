@@ -46,6 +46,17 @@ const useStyles = createUseStyles((theme) => ({
     backgroundColor: theme.blue,
   },
   '@global': {
+    '*': {
+      boxSizing: 'border-box',
+    },
+    'html, body': {
+      margin: 0,
+      padding: 0,
+      fontFamily: 'arial, helvetica, sans-serif',
+      fontSize: 14,
+      color: '#333',
+      backgroundColor: '#fff',
+    },
     body: {
       '&[data-render-state="rendering"] $loadingBarInner': {
         animation: '$loadingBarRendering 5s ease-out forwards',
