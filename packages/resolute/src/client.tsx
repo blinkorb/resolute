@@ -166,15 +166,12 @@ const renderClient = async (
     Promise.resolve(element)
   );
 
-  const jssStyles = globalThis.document.querySelectorAll('[data-jss]');
-
   const page = (
     <Page
       location={withInjectedProps.location}
       router={router}
       meta={withInjectedProps.meta}
       settings={settings}
-      removeStyles={!prevPage?.root ? jssStyles : null}
       preload={preload}
     >
       {withLayouts}

@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect } from 'react';
+import React, { ReactNode, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 
 import { useIsClientRender } from './hooks.js';
@@ -17,7 +17,6 @@ export interface PageProps {
   location: LocationInfo;
   router: Router;
   meta: PageMeta;
-  removeStyles?: NodeListOf<Element> | null;
   settings: ResoluteSettings;
   preload: PreloadFunction;
   children?: ReactNode | readonly ReactNode[];
@@ -27,12 +26,18 @@ const Page = ({
   location,
   router,
   meta,
-  removeStyles,
   settings,
   preload,
   children,
 }: PageProps) => {
   const isClientRender = useIsClientRender();
+
+  const removeStyles = useMemo(
+    () =>
+      'document' in globalThis &&
+      globalThis.document.querySelectorAll('[data-jss]'),
+    []
+  );
 
   useEffect(() => {
     if (isClientRender && removeStyles) {
