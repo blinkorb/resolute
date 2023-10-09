@@ -8,8 +8,53 @@ const THEME = {
 } satisfies DefaultTheme;
 
 const useStyles = createUseStyles((theme) => ({
+  '@keyframes loadingBarRendering': {
+    from: {
+      width: 0,
+    },
+    to: {
+      width: '100%',
+    },
+  },
+  '@keyframes loadingBarRendered': {
+    from: {
+      width: '100%',
+      opacity: '100%',
+    },
+    to: {
+      width: '100%',
+      opacity: 0,
+    },
+  },
   link: {
     color: theme.red,
+  },
+  loadingBar: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: 2,
+    opacity: 0.8,
+  },
+  loadingBarInner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 0,
+    height: '100%',
+    backgroundColor: theme.blue,
+    transition: 'ease-out 0.2s width, ease-out 0.2s opacity',
+  },
+  '@global': {
+    body: {
+      '&[data-render-state="rendering"] $loadingBarInner': {
+        animation: '$loadingBarRendering 5s ease-out forwards',
+      },
+      '&[data-render-state="rendered"] $loadingBarInner': {
+        animation: '$loadingBarRendered 0.5s ease-out forwards',
+      },
+    },
   },
 }));
 
@@ -69,12 +114,23 @@ const Navigation = () => {
   );
 };
 
+const LoadingBar = () => {
+  const styles = useStyles();
+
+  return (
+    <div className={styles.loadingBar}>
+      <div className={styles.loadingBarInner} />
+    </div>
+  );
+};
+
 const Layout = ({
   children,
 }: {
   children: ReactNode | readonly ReactNode[];
 }) => (
   <ThemeProvider theme={THEME}>
+    <LoadingBar />
     <Navigation />
     {children}
   </ThemeProvider>
