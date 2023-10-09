@@ -12,6 +12,7 @@ import {
   ResoluteSettings,
   Router,
 } from './types.js';
+import { isBrowser } from './utils/environment.js';
 
 export interface PageProps {
   location: LocationInfo;
@@ -33,9 +34,7 @@ const Page = ({
   const isClientRender = useIsClientRender();
 
   const removeStyles = useMemo(
-    () =>
-      'document' in globalThis &&
-      globalThis.document.querySelectorAll('[data-jss]'),
+    () => isBrowser() && globalThis.document.querySelectorAll('[data-jss]'),
     []
   );
 

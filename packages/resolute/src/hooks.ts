@@ -3,13 +3,13 @@ import { useContext, useEffect, useState } from 'react';
 import { PreloadContext } from './preload.js';
 import { RouteContext } from './router.js';
 import { SettingsContext } from './settings.js';
+import { isBrowser } from './utils/environment.js';
 
 const useIsClientRender = () => {
   const [state, setState] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line no-restricted-globals
-    if (typeof window !== 'undefined') {
+    if (isBrowser()) {
       setState(true);
     }
   }, []);
