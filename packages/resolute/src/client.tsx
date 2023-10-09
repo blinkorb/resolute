@@ -444,6 +444,7 @@ const loadPage = async (location: Location) => {
   };
 
   const router = getRouter(location.origin, history);
+  globalThis.document.body.dataset.renderState = 'rendering';
 
   const pageCache = await loadModuleFromCache(
     location,
@@ -464,11 +465,13 @@ const loadPage = async (location: Location) => {
     (settings.viewTransitions ?? DEFAULT_VIEW_TRANSITIONS) &&
     typeof globalThis.document.startViewTransition === 'function'
   ) {
-    globalThis.document.startViewTransition(() =>
-      updatePage(location, pageCache, cache, router, id, loadTime)
-    );
+    globalThis.document.startViewTransition(async () => {
+      await updatePage(location, pageCache, cache, router, id, loadTime);
+      globalThis.document.body.dataset.renderState = 'rendered';
+    });
   } else {
-    updatePage(location, pageCache, cache, router, id, loadTime);
+    await updatePage(location, pageCache, cache, router, id, loadTime);
+    globalThis.document.body.dataset.renderState = 'rendered';
   }
 };
 
