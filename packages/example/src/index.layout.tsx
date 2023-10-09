@@ -44,7 +44,6 @@ const useStyles = createUseStyles((theme) => ({
     width: 0,
     height: '100%',
     backgroundColor: theme.blue,
-    transition: 'ease-out 0.2s width, ease-out 0.2s opacity',
   },
   '@global': {
     body: {
