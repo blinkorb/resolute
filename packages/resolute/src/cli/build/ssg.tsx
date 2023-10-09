@@ -690,7 +690,7 @@ const buildStatic = async (watch?: boolean) => {
           const resoluteClientHref = `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js`;
 
           // Construct import map
-          const importMap = JSON.stringify({
+          const importMap = `<script type="importmap">${JSON.stringify({
             imports: nodeModuleDependencies
               .filter((dep) => !MATCHES_LOCAL.test(dep.module))
               .reduce(
@@ -707,7 +707,7 @@ const buildStatic = async (watch?: boolean) => {
                   [SCOPED_CLIENT]: resoluteClientHref,
                 }
               ),
-          });
+          })}</script>`;
 
           const resoluteClient = `<script defer type="module" src="${resoluteClientHref}"></script>`;
           const modulePreload = uniquePageDependencies
@@ -719,7 +719,7 @@ const buildStatic = async (watch?: boolean) => {
             })
             .join('');
 
-          const staticHead = `${headHelmet}${headStyles}<script type="importmap">${importMap}</script>${modulePreload}`;
+          const staticHead = `${headHelmet}${importMap}${modulePreload}${headStyles}`;
 
           const html = `<!DOCTYPE html><html><head>${staticHead}${resoluteClient}</head><body>${body}</body></html>\n`;
 
