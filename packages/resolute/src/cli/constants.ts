@@ -26,7 +26,7 @@ export const SERVER_PATHNAME = path.resolve(CWD, SERVER_DIR);
 export const PUBLIC_FILES_GLOB = 'public/**/*';
 
 export const MATCHES_LOCAL = /^[./]/;
-export const MATCHES_NODE_MODULE = /.*\/node_modules\//;
+export const MATCHES_NODE_MODULE = /(^|\b)node_modules\//;
 
 export const MATCHES_RESOLUTE = new RegExp(
   `.+(?:${SCOPE}\\/${NAME}|${NAME}\\/build)(.+)`
