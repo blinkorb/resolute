@@ -21,6 +21,7 @@ export const compileTypeScript = (
     jsx: ts.JsxEmit.React,
     outDir,
     rootDir,
+    skipLibCheck: true,
   });
 
   const emitResult = program.emit();
