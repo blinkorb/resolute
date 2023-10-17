@@ -2,6 +2,9 @@
   "name": "@blinkorb/resolute",
   "version": "0.0.0",
   "description": "Bleeding edge React static/server side rendering framework",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./build/index.js",
   "bin": {
     "resolute": "./build/cli/index.js"
