@@ -71,7 +71,7 @@ export const getVersionMap = (
       }
 
       const packagePath = dep.resolved.replace(
-        /(\/node_modules\/)(@[\w-]+\/[\w-]+|[\w-]+)\/.*$/,
+        /(?:^|\b)(node_modules\/)(@[\w-]+\/[\w-]+|[\w-]+)\/.*$/,
         `$1${match[1]}/package.json`
       );
 
