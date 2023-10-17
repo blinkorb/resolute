@@ -12,6 +12,7 @@
 *.jpg
 *.jpeg
 *.gif
+*.tgz
 
 .DS_Store
 .eslintignore
