@@ -802,9 +802,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
 
     server.listen(parseInt(process.env.PORT, 10), '0.0.0.0', () => {
       // eslint-disable-next-line no-console
-      console.log(
-        `Dev server running at http${serveHttps ? 's' : ''}://0.0.0.0:${PORT}`
-      );
+      console.log(`Dev server running at ${URL} (port ${PORT})`);
     });
   }
 };
