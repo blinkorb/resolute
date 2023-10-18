@@ -1,4 +1,7 @@
+import { execSync } from 'node:child_process';
 import fs from 'node:fs';
+import http from 'node:http';
+import https from 'node:https';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
@@ -139,7 +142,7 @@ const getElement = async (route: string, info: RouteInfo) => {
   };
 };
 
-const buildStatic = async (watch?: boolean) => {
+const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   // eslint-disable-next-line no-console
   console.log('Building...');
 
@@ -148,7 +151,7 @@ const buildStatic = async (watch?: boolean) => {
   process.env.NODE_ENV = 'production';
   const PORT = process.env.PORT || '3000';
   const BUILD_PORT = process.env.BUILD_PORT || '4000';
-  const URL = (process.env.URL || `http://localhost:${PORT}`).replace(
+  const URL = (process.env.URL || `https://localhost:${PORT}`).replace(
     MATCHES_TRAILING_SLASH,
     ''
   );
@@ -775,13 +778,33 @@ const buildStatic = async (watch?: boolean) => {
   });
 
   if (watch) {
+    if (
+      serveHttps &&
+      (!fs.existsSync('key.pem') || !fs.existsSync('cert.pem'))
+    ) {
+      execSync(
+        'openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 3650 -nodes -subj "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=CommonNameOrHostname"'
+      );
+    }
+
+    const server = serveHttps
+      ? https.createServer(
+          {
+            key: fs.readFileSync('key.pem', 'utf8'),
+            cert: fs.readFileSync('cert.pem', 'utf8'),
+          },
+          app
+        )
+      : http.createServer(app);
     process.env.PORT = PORT;
     process.env.URL = URL;
     process.env.API_URL = API_URL;
 
-    app.listen(process.env.PORT, () => {
+    server.listen(parseInt(process.env.PORT, 10), '0.0.0.0', () => {
       // eslint-disable-next-line no-console
-      console.log(`Dev server running at http://localhost:${process.env.PORT}`);
+      console.log(
+        `Dev server running at http${serveHttps ? 's' : ''}://0.0.0.0:${PORT}`
+      );
     });
   }
 };
