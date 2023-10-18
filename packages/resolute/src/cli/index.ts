@@ -1,6 +1,14 @@
 #! /usr/bin/env -S node --enable-source-maps
 
-import { collect, Command, Help, KWArg, Program, RequireAny } from 'jargs';
+import {
+  collect,
+  Command,
+  Flag,
+  Help,
+  KWArg,
+  Program,
+  RequireAny,
+} from 'jargs';
 
 import { DESCRIPTION, NAME } from '../constants.js';
 import buildStatic from './build/ssg.js';
@@ -77,7 +85,7 @@ collect(
                 typeof tree.kwargs.renderer === 'undefined' ||
                 tree.kwargs.renderer === 'ssg'
               ) {
-                return buildStatic(true);
+                return buildStatic(true, tree.flags.https);
               }
 
               if (tree.kwargs.renderer === 'ssr') {
@@ -99,7 +107,10 @@ collect(
               return process.exit(1);
             },
           },
-          RENDERER
+          RENDERER,
+          Flag('https', {
+            description: 'Serve over HTTPS',
+          })
         )
       )
     )
