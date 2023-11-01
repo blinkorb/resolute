@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import path from 'node:path';
 
 import { transformSync } from '@babel/core';
 import ts from 'typescript';
@@ -19,7 +20,7 @@ const BASE_TS_COMPILER_OPTIONS = {
 } as const satisfies ts.CompilerOptions;
 
 const FORMAT_HOST = {
-  getCanonicalFileName: (path: string) => path,
+  getCanonicalFileName: (pathname: string) => pathname,
   getCurrentDirectory: ts.sys.getCurrentDirectory,
   getNewLine: () => ts.sys.newLine,
 } as const satisfies ts.FormatDiagnosticsHost;
@@ -54,18 +55,53 @@ const reportWatchStatusChanged = (diagnostic: ts.Diagnostic) => {
   console.log(diagnostic.messageText);
 };
 
+const getCompilerOptionsJSONFollowExtends = (
+  filename: string
+): { [key: string]: unknown } => {
+  const result: {
+    config?: Record<string, unknown>;
+    error?: ts.Diagnostic | undefined;
+  } = ts.readConfigFile(filename, ts.sys.readFile);
+
+  if (result.error) {
+    // eslint-disable-next-line no-console
+    console.error(result.error.messageText);
+    return process.exit(1);
+  }
+
+  if (typeof result.config?.extends === 'string') {
+    const dirname = path.dirname(filename);
+    const resolved = path.resolve(dirname, result.config.extends);
+
+    return {
+      ...(typeof result.config?.compilerOptions === 'object'
+        ? result.config.compilerOptions
+        : null),
+      ...getCompilerOptionsJSONFollowExtends(resolved),
+    };
+  }
+  return {
+    ...(typeof result.config?.compilerOptions === 'object'
+      ? result.config.compilerOptions
+      : null),
+  };
+};
+
 export const watchTypeScript = (rootDir: string, outDir: string) => {
-  const configPath = ts.findConfigFile(CWD, ts.sys.fileExists, 'tsconfig.json');
+  const configPath = ts.findConfigFile(
+    CWD,
+    ts.sys.fileExists,
+    'tsconfig.resolute.json'
+  );
 
   if (!configPath) {
-    throw new Error(`No tsconfig.json found in "${CWD}"`);
+    throw new Error(`No tsconfig.resolute.json found in "${CWD}"`);
   }
 
   const host = ts.createWatchCompilerHost(
     configPath,
     {
       ...BASE_TS_COMPILER_OPTIONS,
-      include: [rootDir],
       rootDir,
       outDir,
     },
@@ -83,11 +119,32 @@ export const compileTypeScript = (
   rootDir: string,
   outDir: string
 ): void => {
+  const configPath = ts.findConfigFile(
+    CWD,
+    ts.sys.fileExists,
+    'tsconfig.resolute.json'
+  );
+
+  if (!configPath) {
+    throw new Error(`No tsconfig.resolute.json found in "${CWD}"`);
+  }
+
+  const compilerOptions = ts.convertCompilerOptionsFromJson(
+    getCompilerOptionsJSONFollowExtends(configPath),
+    CWD,
+    'tsconfig.resolute.json'
+  );
+
+  if (compilerOptions.errors?.length) {
+    compilerOptions.errors.forEach(reportDiagnostic);
+    return process.exit(1);
+  }
+
   const program = ts.createProgram(fileNames, {
     ...BASE_TS_COMPILER_OPTIONS,
-    include: [rootDir],
     rootDir,
     outDir,
+    ...compilerOptions.options,
   });
 
   const emitResult = program.emit();
