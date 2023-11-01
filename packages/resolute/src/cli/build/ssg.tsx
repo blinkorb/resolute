@@ -56,7 +56,11 @@ import {
   SRC_PATHNAME,
   STATIC_PATHNAME,
 } from '../constants.js';
-import { compileBabel, compileTypeScript } from '../utils/compile.js';
+import {
+  compileBabel,
+  compileTypeScript,
+  watchTypeScript,
+} from '../utils/compile.js';
 import { getAllDependencies, getVersionMap } from '../utils/deps.js';
 import {
   fromServerPathToRelativeTSX,
@@ -803,6 +807,8 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     process.env.PORT = PORT;
     process.env.URL = URL;
     process.env.API_URL = API_URL;
+
+    watchTypeScript(SRC_PATHNAME, SERVER_PATHNAME);
 
     server.listen(parseInt(process.env.PORT, 10), '0.0.0.0', () => {
       // eslint-disable-next-line no-console
