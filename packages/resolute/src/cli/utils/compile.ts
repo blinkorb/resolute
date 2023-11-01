@@ -141,10 +141,10 @@ export const compileTypeScript = (
   }
 
   const program = ts.createProgram(fileNames, {
+    ...compilerOptions.options,
     ...BASE_TS_COMPILER_OPTIONS,
     rootDir,
     outDir,
-    ...compilerOptions.options,
   });
 
   const emitResult = program.emit();
