@@ -51,7 +51,7 @@ const reportDiagnostic = (diagnostic: ts.Diagnostic) => {
 
 const reportWatchStatusChanged = (diagnostic: ts.Diagnostic) => {
   // eslint-disable-next-line no-console
-  console.log(ts.formatDiagnostic(diagnostic, FORMAT_HOST));
+  console.log(diagnostic.messageText);
 };
 
 export const watchTypeScript = (rootDir: string, outDir: string) => {
