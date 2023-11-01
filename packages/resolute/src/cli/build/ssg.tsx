@@ -5,6 +5,7 @@ import https from 'node:https';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
+import chokidar from 'chokidar';
 import cpy from 'cpy';
 import { config as dotenvConfig } from 'dotenv';
 import express from 'express';
@@ -809,6 +810,43 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     process.env.API_URL = API_URL;
 
     watchTypeScript(SRC_PATHNAME, SERVER_PATHNAME);
+
+    const markdownWatcher = chokidar.watch(`**/*${GLOB_MARKDOWN_EXTENSION}`, {
+      ignoreInitial: true,
+      cwd: SRC_PATHNAME,
+    });
+
+    markdownWatcher
+      .on('add', (pathname) => {
+        try {
+          fs.cpSync(
+            path.resolve(SRC_PATHNAME, pathname),
+            path.resolve(SERVER_PATHNAME, pathname)
+          );
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error(error);
+        }
+      })
+      .on('change', (pathname) => {
+        try {
+          fs.cpSync(
+            path.resolve(SRC_PATHNAME, pathname),
+            path.resolve(SERVER_PATHNAME, pathname)
+          );
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error(error);
+        }
+      })
+      .on('unlink', (pathname) => {
+        try {
+          fs.unlinkSync(path.resolve(SERVER_PATHNAME, pathname));
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error(error);
+        }
+      });
 
     server.listen(parseInt(process.env.PORT, 10), '0.0.0.0', () => {
       // eslint-disable-next-line no-console
