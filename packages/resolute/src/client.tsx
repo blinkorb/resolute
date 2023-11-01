@@ -32,15 +32,7 @@ import { toTSX } from './utils/paths.js';
 let settings: ResoluteSettings = {};
 
 try {
-  settings =
-    (
-      await import(
-        `${(process.env.URL || '').replace(
-          MATCHES_TRAILING_SLASH,
-          '/'
-        )}resolute.settings.js`
-      )
-    ).default || {};
+  settings = (await import('/resolute.settings.js' as string)).default || {};
 } catch (error) {
   if (process.env.NODE_ENV === 'development' && globalThis.console) {
     // eslint-disable-next-line no-console
