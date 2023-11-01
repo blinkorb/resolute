@@ -32,7 +32,7 @@
   },
   "homepage": "https://github.com/blinkorb/resolute#readme",
   "dependencies": {
-    "@blinkorb/resolute": "^0.0.0",
+    "@blinkorb/resolute": "file:../resolute",
     "@types/node": "^18.17.4",
     "@types/react": "^18.2.18",
     "@types/react-dom": "^18.2.7",
