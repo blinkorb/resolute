@@ -231,8 +231,9 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   });
 
   // Get all non-resolute resolute dependencies
-  const { list: resoluteClientDependencies } =
-    await getAllDependencies(resoluteClientFiles);
+  const resoluteClientDependencies = (
+    await getAllDependencies(resoluteClientFiles)
+  ).list.filter((dep) => dep.resolved !== '/resolute.settings.js');
 
   // De-duplicate dependencies
   const uniqueDependencies = [
@@ -247,14 +248,16 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   const clientLocalDependencies = uniqueDependencies.filter(
     (dep) =>
       !MATCHES_NODE_MODULE.test(dep.resolved) &&
-      !MATCHES_RESOLUTE.test(dep.resolved)
+      !MATCHES_RESOLUTE.test(dep.resolved) &&
+      dep.resolved !== '/resolute.settings.js'
   );
 
   // Filter only node modules
   const nodeModuleDependencies = uniqueDependencies.filter(
     (dep) =>
-      MATCHES_NODE_MODULE.test(dep.resolved) ||
-      MATCHES_RESOLUTE.test(dep.resolved)
+      (MATCHES_NODE_MODULE.test(dep.resolved) ||
+        MATCHES_RESOLUTE.test(dep.resolved)) &&
+      dep.resolved !== '/resolute.settings.js'
   );
 
   const nodeModulesVersionMap = getVersionMap(
@@ -636,7 +639,8 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
             ...pageDependencies,
           ].filter(
             (dep, index, context) =>
-              context.findIndex((d) => d.resolved === dep.resolved) === index
+              context.findIndex((d) => d.resolved === dep.resolved) === index &&
+              dep.resolved !== '/resolute.settings.js'
           );
 
           const throwNavigationError = () => {
