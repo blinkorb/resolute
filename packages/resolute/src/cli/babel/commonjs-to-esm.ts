@@ -75,22 +75,24 @@ const commonjsToEsm: PluginObj = {
         return declarator;
       });
 
-      p.replaceWithMultiple([
-        p.node,
-        ...subObjectPatternProperties.map((property) => {
-          return t.variableDeclaration('const', [
-            t.variableDeclarator(
-              t.objectPattern([
-                t.objectProperty(
-                  t.identifier(property.from),
-                  t.identifier(property.to)
-                ),
-              ]),
-              t.identifier(property.parent)
-            ),
-          ]);
-        }),
-      ]);
+      if (subObjectPatternProperties.length) {
+        p.replaceWithMultiple([
+          p.node,
+          ...subObjectPatternProperties.map((property) => {
+            return t.variableDeclaration('const', [
+              t.variableDeclarator(
+                t.objectPattern([
+                  t.objectProperty(
+                    t.identifier(property.from),
+                    t.identifier(property.to)
+                  ),
+                ]),
+                t.identifier(property.parent)
+              ),
+            ]);
+          }),
+        ]);
+      }
     },
     AssignmentExpression(p) {
       const { node } = p;
