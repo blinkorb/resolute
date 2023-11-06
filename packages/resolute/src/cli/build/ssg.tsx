@@ -148,7 +148,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
 
   const startTime = Date.now();
   // Set environment variables
-  process.env.NODE_ENV = 'production';
+  process.env.NODE_ENV = watch ? 'development' : 'production';
   const PORT = process.env.PORT || '3000';
   const BUILD_PORT = process.env.BUILD_PORT || '4000';
   const URL = (process.env.URL || `https://localhost:${PORT}`).replace(
