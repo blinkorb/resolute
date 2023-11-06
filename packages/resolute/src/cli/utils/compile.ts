@@ -184,6 +184,7 @@ export const compileBabel = (
     ],
     minified: true,
     sourceMaps: 'inline',
+    sourceType: 'unambiguous',
   });
 
   if (!babelResult) {
