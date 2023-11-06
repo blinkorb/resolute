@@ -78,7 +78,9 @@
     "react-helmet": "^6.1.0",
     "react-jss": "^10.10.0",
     "react-markdown": "^9.0.0",
-    "rimraf": "^5.0.1"
+    "rimraf": "^5.0.1",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.7.2"
   },
   "peerDependencies": {
     "@types/react": "^18.2.18",
