@@ -71,9 +71,17 @@ export const getVersionMap = (
       }
 
       const packagePath = dep.resolved.replace(
-        /(?:^|\b)(node_modules\/)(@[\w-]+\/[\w-]+|[\w-]+)\/.*$/,
+        /(?:^|\b)(node_modules\/)(@[\w.-]+\/[\w.-]+|[\w.-]+)\/.*$/,
         `$1${match[1]}/package.json`
       );
+
+      if (!packagePath.endsWith('/package.json')) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `Could not resolve package.json for module "${dep.module}" which resolved to "${dep.resolved}"`
+        );
+        return process.exit(1);
+      }
 
       try {
         return {
