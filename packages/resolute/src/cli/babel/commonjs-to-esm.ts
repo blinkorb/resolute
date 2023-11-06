@@ -26,6 +26,11 @@ const commonjsToEsm: PluginObj = {
         to: string;
       }[] = [];
 
+      // Flatten nested ObjectPattern declarations
+      // const { a: { b: c } } = require('module');
+      // Becomes
+      // const { a } = require('module');
+      // const { b: c } = a;
       p.node.declarations = node.declarations.map((declarator) => {
         if (
           declarator.id.type === 'ObjectPattern' &&
