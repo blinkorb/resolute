@@ -18,7 +18,16 @@ export const getAllDependencies = async (pathnames: string[]) => {
     },
   });
 
-  const list = dependencies.output.modules
+  const modulesWithoutResoluteSettings = dependencies.output.modules.map(
+    (mod) => ({
+      ...mod,
+      dependencies: mod.dependencies.filter(
+        (dep) => dep.module !== '/resolute.settings.js'
+      ),
+    })
+  );
+
+  const list = modulesWithoutResoluteSettings
     .reduce<readonly IDependency[]>((acc, mod) => {
       return [...acc, ...mod.dependencies];
     }, [])
@@ -30,7 +39,7 @@ export const getAllDependencies = async (pathnames: string[]) => {
         ) === index
     );
 
-  dependencies.output.modules.forEach((mod) => {
+  modulesWithoutResoluteSettings.forEach((mod) => {
     mod.dependencies.forEach((dep) => {
       if (dep.couldNotResolve) {
         // eslint-disable-next-line no-console
@@ -43,7 +52,7 @@ export const getAllDependencies = async (pathnames: string[]) => {
   });
 
   return {
-    modules: dependencies.output.modules,
+    modules: modulesWithoutResoluteSettings,
     list,
   };
 };

@@ -231,9 +231,8 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   });
 
   // Get all non-resolute resolute dependencies
-  const resoluteClientDependencies = (
-    await getAllDependencies(resoluteClientFiles)
-  ).list.filter((dep) => dep.resolved !== '/resolute.settings.js');
+  const { list: resoluteClientDependencies } =
+    await getAllDependencies(resoluteClientFiles);
 
   // De-duplicate dependencies
   const uniqueDependencies = [
@@ -248,16 +247,14 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   const clientLocalDependencies = uniqueDependencies.filter(
     (dep) =>
       !MATCHES_NODE_MODULE.test(dep.resolved) &&
-      !MATCHES_RESOLUTE.test(dep.resolved) &&
-      dep.resolved !== '/resolute.settings.js'
+      !MATCHES_RESOLUTE.test(dep.resolved)
   );
 
   // Filter only node modules
   const nodeModuleDependencies = uniqueDependencies.filter(
     (dep) =>
-      (MATCHES_NODE_MODULE.test(dep.resolved) ||
-        MATCHES_RESOLUTE.test(dep.resolved)) &&
-      dep.resolved !== '/resolute.settings.js'
+      MATCHES_NODE_MODULE.test(dep.resolved) ||
+      MATCHES_RESOLUTE.test(dep.resolved)
   );
 
   const nodeModulesVersionMap = getVersionMap(
@@ -620,7 +617,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
           const uniquePageDependencies = [
             {
               // Manually included as this is a dynamic import
-              module: './resolute.settings.js',
+              module: '/resolute.settings.js',
               resolved: 'server/resolute.settings.js',
             },
             // Include client file and layouts if it can be hydrated
@@ -639,8 +636,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
             ...pageDependencies,
           ].filter(
             (dep, index, context) =>
-              context.findIndex((d) => d.resolved === dep.resolved) === index &&
-              dep.resolved !== '/resolute.settings.js'
+              context.findIndex((d) => d.resolved === dep.resolved) === index
           );
 
           const throwNavigationError = () => {
