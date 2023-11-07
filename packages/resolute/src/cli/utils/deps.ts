@@ -30,6 +30,18 @@ export const getAllDependencies = async (pathnames: string[]) => {
         ) === index
     );
 
+  dependencies.output.modules.forEach((mod) => {
+    mod.dependencies.forEach((dep) => {
+      if (dep.couldNotResolve) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `Could not resolve module "${dep.module}" from "${mod.source}"`
+        );
+        return process.exit(1);
+      }
+    });
+  });
+
   return {
     modules: dependencies.output.modules,
     list,
