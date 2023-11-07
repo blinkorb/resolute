@@ -13,7 +13,7 @@ export const getAllDependencies = async (pathnames: string[]) => {
     },
     enhancedResolveOptions: {
       mainFields: ['module', 'main'],
-      exportsFields: ['exports'],
+      exportsFields: ['browser', 'exports'],
       conditionNames: ['import', 'require', 'default'],
     },
   });
