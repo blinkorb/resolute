@@ -12,7 +12,7 @@ Key features include:
 
 - TypeScript first
 - Directory based routing
-- Outputs ES modules - no code bundling, faster load times
+- Outputs ES modules - no code bundling, faster load times - [how?](#es-modules-technical-explanation)
 - Out of the box support for [View Transitions](https://developer.chrome.com/docs/web-platform/view-transitions/)
 - Load only relevant modules per page (with caching)
 - Control over what is renderer statically, on the server, or the client
@@ -533,3 +533,21 @@ Returns the settings defined in your `resolute.settings.tsx`.
 Returns a function that can be used to preload a page (by href).
 
 Warning: we might not expose this in the future. Please try to use `<Link preload>`.
+
+## ES Modules Technical Explanation
+
+Not all node modules expose ES modules. Even React itself only currently provides CommonJS modules.
+
+In order to provide modules that are compatible with ES modules, and to allow caching of modules we do some fancy stuff behind the scenes:
+
+- We collect the dependency tree for your entire site/app
+- A babel transform runs on all dependencies to convert any CommonJS `require`/`module.exports` to ESM `imports`/`exports`
+- As part of the babel transform we also do some dead code elimination
+- Node modules are output to a `node-modules` directory (note the hyphen to avoid issues with real `node_modules`)
+- Each node module is put into a directory that contains its version number so they can be cached e.g. `node-modules/react@18.0.0`
+- We create a `<script type="importmap">` which contains a mapping from the module name to the path of the module e.g. `"react": "/node-modules/react@18.0.0/index.js"`
+- We create `<link rel="modulepreload">` for each module that is required by a page so that every module is loaded at the same time
+
+Now instead of loading one giant bundle, or even multiple bundles (including vendor bundles), we load every necessary module individually and immediately.
+
+The result of this is that (with HTTP2 at least) every page will only load as slowly as its largest module.
