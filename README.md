@@ -19,8 +19,8 @@ Key features include:
 - Built-in (optional) support for creating an API
 - Preloading of pages - manually and or on hover/focus
 - Async components that work on the server _and_ the client
-- Generate pages from markdown files with [react-markdown](https://github.com/remarkjs/react-markdown)
 - Intuitive way to group components and apply layouts and context
+- Generate pages from markdown files with [react-markdown](https://github.com/remarkjs/react-markdown)
 - Easily define metadata for pages (with support for [react-helmet](https://github.com/nfl/react-helmet))
 - Styling with [react-jss](https://cssinjs.org/react-jss/)
 
