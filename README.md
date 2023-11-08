@@ -478,7 +478,7 @@ const Example = () => {
 
 ### Links and Preloading
 
-Resolute provides a `Link` component that you should use for _all_ links - this is used by the client side code to make static pages work liek a single page app.
+Resolute provides a `Link` component that you should use for _all_ links - this is used by the client side code to make static pages work like a single page app.
 
 You can specify which pages should be preloaded by adding a `preload` prop to your `Link` components, but by default any links will be preloaded on hover/focus. This is customizable via the `resolute.settings.tsx` file.
 
