@@ -382,7 +382,7 @@ This is _markdown_ content
 
 Any markdown files in your `src` directory will be output as static HTML pages with [react-markdown](https://github.com/remarkjs/react-markdown).
 
-You can define the metadata for these files within the `---` section at the top of the file.
+You can define the metadata for these files with [YAML front matter](https://github.com/ilterra/markdown-yaml-metadata-parser) within the `---` section at the top of the file.
 
 You can define custom components to be used within your markdown files in the `resolute.settings.tsx` file.
 
