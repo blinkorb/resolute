@@ -497,3 +497,31 @@ const Example = () => (
   </div>
 );
 ```
+
+### Hooks
+
+#### useIsClientRender
+
+Returns `true` if this is a subsequent client side render.
+
+It initially returns `false` so that your first client render can match the server render for hydration.
+
+#### useRouter
+
+Returns `{ router: Router, location: LocationInfo }`.
+
+You can use the `Router` methods `navigate`, `go`, and `back` to navigate programmatically.
+
+#### useLocation
+
+Returns `LocationInfo` - similar to `Location` - see type definition for more info.
+
+#### useSettings
+
+Returns the settings defined in your `resolute.settings.tsx`.
+
+#### usePreload
+
+Returns a function that can be used to preload a page (by href).
+
+Warning: we might not expose this in the future. Please try to use `<Link preload>`.
