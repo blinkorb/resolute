@@ -125,7 +125,7 @@ Any files with `.page.tsx` will be output as a page.
 
 The directory structure will be used to create your routes.
 
-Files beginning with `index` resolve to an empty path, so the `index.page.tsx` will result in a page at `/`.
+Files beginning with `index` resolve to an empty path, so the `/src/index.page.tsx` will result in a page at `/`.
 
 Example:
 
