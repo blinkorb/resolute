@@ -84,9 +84,29 @@ Open another terminal to rebuild your project with:
 npm run build
 ```
 
-### Project Structure
+#### Project Structure
 
 Create a `src` directory in the root of your project. This is where you will put all of your source code.
+
+#### TypeScript Config
+
+You should create a `tsconfig.json` file in the root of your project.
+
+You can use whatever options you like within here, but it _must_ include:
+
+```json
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "target": "ESNext",
+    "module": "NodeNext",
+    "jsx": "react"
+  },
+  "include": ["src"]
+}
+```
 
 #### Settings
 
@@ -107,7 +127,7 @@ export default settings;
 
 Inspect the `ResoluteSettings` interface to see what options are available.
 
-#### Pages/Directories
+### Pages/Directories
 
 To create your home page create an `index.page.tsx` file in the `src` directory and add the following content:
 
@@ -168,7 +188,7 @@ If you'd like to avoid hydration and instead render the client side components r
 
 Note: avoiding hydration will result in slower renders as none of the DOM nodes are recycled.
 
-#### Async Components
+### Async Components
 
 Resolute supports the ability to define asynchronous components that work on the server and the client.
 
@@ -186,7 +206,7 @@ const AsyncComponent = async () => {
 
 Although async components _can_ be rendered on the client you should avoid doing so. The time taken to resolve any requests before the element is rendered will likely not be a nice experience for users navigating your site/app.
 
-#### Sharing Props
+### Getting/Sharing Props
 
 You can export a `getProps` function from any page.
 
@@ -210,7 +230,7 @@ const MyComponent = ({ example }: Props) => <div>{example}</div>;
 
 If a client component also exports a `getProps` function the results of both functions will be merged.
 
-#### Metadata
+### Metadata
 
 Pages can export metadata that will be used to generate the page's `<head>` content.
 
@@ -245,7 +265,7 @@ const Example = () => (
 );
 ```
 
-#### Layouts
+### Layouts
 
 Create an `index.layout.tsx` file in the `src` directory and add the following content:
 
@@ -287,7 +307,7 @@ Example:
     /index.layout.tsx
 ```
 
-#### API
+### API
 
 Create an `example.api.ts` file in the `src` directory and add the following content:
 
@@ -320,7 +340,7 @@ const result = await exampleAPI('getExample');
 
 By using the `typeof import()` syntax we can ensure that any requests we make automatically share the types of the functions defined in our `example.api.ts` file.
 
-#### Logical Grouping
+### Logical Grouping
 
 Files/directories beginning with `_` will not effect the output path. This is useful for logically grouping pages that don't fall under the same route, but should receive the same layout/context.
 
@@ -340,7 +360,7 @@ Will result in the following HTML output:
 /about/index.html
 ```
 
-#### Markdown Pages
+### Markdown Pages
 
 Create am `example.md` file in the `src` directory and add the following content:
 
@@ -378,7 +398,7 @@ const settings: ResoluteSettings = {
 };
 ```
 
-#### Styling
+### Styling
 
 Resolute uses [react-jss](https://cssinjs.org/react-jss/) for styling.
 
@@ -454,4 +474,26 @@ const Example = () => {
 
   return <div className={classes.example}>Example</div>;
 };
+```
+
+### Links and Preloading
+
+Resolute provides a `Link` component that you should use for _all_ links - this is used by the client side code to make static pages work liek a single page app.
+
+You can specify which pages should be preloaded by adding a `preload` prop to your `Link` components, but by default any links will be preloaded on hover/focus. This is customizable via the `resolute.settings.tsx` file.
+
+Example:
+
+```tsx
+import React from 'react';
+import { Link } from '@blinkorb/resolute';
+
+const Example = () => (
+  <div>
+    <Link to="/about" preload>
+      About
+    </Link>
+    <Link to="/contact">Contact</Link>
+  </div>
+);
 ```
