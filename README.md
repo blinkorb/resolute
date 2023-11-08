@@ -544,4 +544,4 @@ In order to provide modules that are compatible with ES modules, and to allow ca
 
 Now instead of loading one giant bundle, or even multiple bundles (including vendor bundles), we load every necessary module individually and immediately.
 
-The result of this is that (with HTTP2 at least) every page will only load as slowly as it's largest module.
+The result of this is that (with HTTP2 at least) every page will only load as slowly as its largest module.
