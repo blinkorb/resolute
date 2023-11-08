@@ -221,7 +221,7 @@ interface Props {
   example: string;
 }
 
-export const getProps = () => ({
+export const getProps = (): Props => ({
   example: 'example',
 });
 
