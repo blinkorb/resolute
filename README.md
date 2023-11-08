@@ -34,7 +34,7 @@ Resolute does not currently support slugs, wildcards, or pagination in routes. T
 
 Server side rendering has been temporarily removed to focus on static site generation. It will be re-added in the future.
 
-The dev server has not yet been completed (due to an issue with module resolution in one of our dependencies) so you will need to manually rebuild the site/app after each changes, which is not ideal.
+The dev server has not yet been completed (due to an issue with module resolution in one of our dependencies) so you will need to manually rebuild the site/app after each change, which is not ideal.
 
 ## Getting Started
 
