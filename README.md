@@ -533,10 +533,10 @@ Not all node modules expose ES modules. Even React itself only currently provide
 In order to provide modules that are compatible with ES modules, and to allow caching of modules we do some fancy stuff behind the scenes:
 
 - We collect the dependency tree for your entire site/app
-- A babel transform runs on all dependencies to convert any CommonJS require/module.exports to ESM imports/exports
+- A babel transform runs on all dependencies to convert any CommonJS `require`/`module.exports` to ESM `imports`/`exports`
 - As part of the babel transform we also do some dead code elimination
 - Node modules are output to a `node-modules` directory (note the hyphen to avoid issues with real `node_modules`)
-- Each node modules is put into a directory that contains its version number so they can be cached e.g. `node-modules/react@18.0.0`
+- Each node module is put into a directory that contains its version number so they can be cached e.g. `node-modules/react@18.0.0`
 - We create a `<script type="importmap">` which contains a mapping from the module name to the path of the module e.g. `"react": "/node-modules/react@18.0.0/index.js"`
 - We create `<link rel="modulepreload">` for each module that is required by a page so that every module is loaded at the same time
 
