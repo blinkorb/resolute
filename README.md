@@ -268,7 +268,7 @@ If you wanted to apply a layout to the `/about` route you could also create an `
 
 Only one layout is resolved per directory depth, so if you have both an `index.layout.tsx` and `about.layout.tsx` in the `src` directory the `index.layout.tsx` will be applied to all pages except those under `/about`.
 
-If you wanted to apply both the main layout and about layout to pages under `/about` you could create an `about/index.layout.tsx` file.
+If you wanted to apply both the main layout and about layout to pages under `/about` you could create an `/about/index.layout.tsx` file.
 
 Example:
 
@@ -352,7 +352,7 @@ title: Markdown
 This is _markdown_ content
 ```
 
-Any markdown files in your `src` directory will be output as static HTML pages.
+Any markdown files in your `src` directory will be output as static HTML pages with [react-markdown](https://github.com/remarkjs/react-markdown).
 
 You can define the metadata for these files within the `---` section at the top of the file.
 
