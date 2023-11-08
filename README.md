@@ -70,6 +70,14 @@ Add the following scripts to the `package.json`:
 }
 ```
 
+Add a type to the `package.json`:
+
+```json
+{
+  "type": "module"
+}
+```
+
 You can now run the project with:
 
 ```shell
