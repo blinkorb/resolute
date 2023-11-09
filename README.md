@@ -556,7 +556,7 @@ It initially returns `false` so that your first client render can match the serv
 
 Returns `{ router: Router, location: LocationInfo }`.
 
-You can use the `Router` methods `navigate`, `go`, and `back` to navigate programmatically.
+You can use the `Router` methods `navigate`, `go`, `back`, and `forward` to navigate programmatically.
 
 #### useLocation
 
