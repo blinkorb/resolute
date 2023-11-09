@@ -100,7 +100,9 @@ Create a `src` directory in the root of your project. This is where you will put
 
 #### Environment Variables
 
-Create a `.env` file in the root of your project, and paste in the following default values.
+You can create a `.env` file in the root of your project to define environment variables.
+
+The default variables are:
 
 ```shell
 # Used for the dev server
@@ -116,7 +118,7 @@ BUILD_API_URL=http://0.0.0.0:4000/api
 
 This file should be git ignored.
 
-If you run the dev server with `--https` you should update the environment variables to reflect this.
+Due to the dev server not currently watching for changes you will need to restart this for changes to take effect.
 
 You can also define your own variables in this file and access them from `process.env.WHATEVER`.
 
@@ -344,8 +346,6 @@ Example:
 ```
 
 ### API
-
-WARNING: this does not currently work. It will be fixed in the next patch version.
 
 Create an `example.api.ts` file in the `src` directory and add the following content:
 

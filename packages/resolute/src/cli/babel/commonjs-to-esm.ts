@@ -17,6 +17,88 @@ const commonjsToEsm: PluginObj = {
         p.remove();
       }
     },
+    VariableDeclaration(p) {
+      const { node } = p;
+
+      const subObjectPatternProperties: {
+        parent: string;
+        from: string;
+        to: string;
+      }[] = [];
+
+      // Flatten nested ObjectPattern declarations
+      // const { a: { b: c } } = require('module');
+      // Becomes
+      // const { a } = require('module');
+      // const { b: c } = a;
+      p.node.declarations = node.declarations.map((declarator) => {
+        if (
+          declarator.id.type === 'ObjectPattern' &&
+          declarator.init?.type === 'CallExpression' &&
+          declarator.init.callee.type === 'Identifier' &&
+          declarator.init.callee.name === 'require' &&
+          declarator.init.arguments.length === 1 &&
+          declarator.init.arguments[0]!.type === 'StringLiteral'
+        ) {
+          return {
+            ...declarator,
+            id: {
+              ...declarator.id,
+              properties: declarator.id.properties.map((property) => {
+                if (
+                  property.type === 'ObjectProperty' &&
+                  property.value.type === 'ObjectPattern' &&
+                  property.key.type === 'Identifier'
+                ) {
+                  property.value.properties.forEach((subProperty) => {
+                    if (
+                      property.key.type === 'Identifier' &&
+                      subProperty.type === 'ObjectProperty' &&
+                      subProperty.key.type === 'Identifier' &&
+                      subProperty.value.type === 'Identifier'
+                    ) {
+                      subObjectPatternProperties.push({
+                        parent: property.key.name,
+                        from: subProperty.key.name,
+                        to: subProperty.value.name,
+                      });
+                    }
+                  });
+
+                  return {
+                    ...property,
+                    value: t.identifier(property.key.name),
+                  };
+                }
+
+                return property;
+              }),
+            },
+          };
+        }
+
+        return declarator;
+      });
+
+      if (subObjectPatternProperties.length) {
+        p.replaceWithMultiple([
+          p.node,
+          ...subObjectPatternProperties.map((property) => {
+            return t.variableDeclaration('const', [
+              t.variableDeclarator(
+                t.objectPattern([
+                  t.objectProperty(
+                    t.identifier(property.from),
+                    t.identifier(property.to)
+                  ),
+                ]),
+                t.identifier(property.parent)
+              ),
+            ]);
+          }),
+        ]);
+      }
+    },
     AssignmentExpression(p) {
       const { node } = p;
       const { left, right } = node;

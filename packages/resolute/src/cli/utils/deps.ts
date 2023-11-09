@@ -7,6 +7,10 @@ import { MATCHES_LOCAL, MATCHES_MODULE_SCOPE_AND_NAME } from '../constants.js';
 export const getAllDependencies = async (pathnames: string[]) => {
   const dependencies = await cruise(pathnames, {
     baseDir: process.cwd(),
+    builtInModules: {
+      override: [],
+      add: [],
+    },
     enhancedResolveOptions: {
       mainFields: ['module', 'main'],
       exportsFields: ['exports'],
@@ -14,7 +18,16 @@ export const getAllDependencies = async (pathnames: string[]) => {
     },
   });
 
-  const list = dependencies.output.modules
+  const modulesWithoutResoluteSettings = dependencies.output.modules.map(
+    (mod) => ({
+      ...mod,
+      dependencies: mod.dependencies.filter(
+        (dep) => dep.module !== '/resolute.settings.js'
+      ),
+    })
+  );
+
+  const list = modulesWithoutResoluteSettings
     .reduce<readonly IDependency[]>((acc, mod) => {
       return [...acc, ...mod.dependencies];
     }, [])
@@ -26,8 +39,20 @@ export const getAllDependencies = async (pathnames: string[]) => {
         ) === index
     );
 
+  modulesWithoutResoluteSettings.forEach((mod) => {
+    mod.dependencies.forEach((dep) => {
+      if (dep.couldNotResolve) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `Could not resolve module "${dep.module}" from "${mod.source}"`
+        );
+        return process.exit(1);
+      }
+    });
+  });
+
   return {
-    modules: dependencies.output.modules,
+    modules: modulesWithoutResoluteSettings,
     list,
   };
 };
@@ -71,9 +96,17 @@ export const getVersionMap = (
       }
 
       const packagePath = dep.resolved.replace(
-        /(?:^|\b)(node_modules\/)(@[\w-]+\/[\w-]+|[\w-]+)\/.*$/,
+        /(?:^|\b)(node_modules\/)(@[\w.-]+\/[\w.-]+|[\w.-]+)\/.*$/,
         `$1${match[1]}/package.json`
       );
+
+      if (!packagePath.endsWith('/package.json')) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `Could not resolve package.json for module "${dep.module}" which resolved to "${dep.resolved}"`
+        );
+        return process.exit(1);
+      }
 
       try {
         return {
