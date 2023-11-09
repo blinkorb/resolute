@@ -1,6 +1,6 @@
 {
   "name": "@blinkorb/resolute",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Bleeding edge React static/server side rendering framework",
   "publishConfig": {
     "access": "public"
