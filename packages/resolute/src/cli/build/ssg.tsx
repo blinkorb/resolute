@@ -25,7 +25,12 @@ import {
 } from '../../constants.js';
 import { RequestMethod } from '../../index.js';
 import Page from '../../page.js';
-import { LayoutJSON, PageDataJSON, ResoluteSettings } from '../../types.js';
+import {
+  LayoutJSON,
+  PageDataJSON,
+  ResoluteSettings,
+  Router,
+} from '../../types.js';
 import {
   getInjectedProps,
   getModuleElement,
@@ -658,7 +663,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
             throw new Error('You cannot navigate in an ssg/ssr context');
           };
 
-          const router = {
+          const router: Router = {
             navigate: throwNavigationError,
             go: throwNavigationError,
             back: throwNavigationError,
