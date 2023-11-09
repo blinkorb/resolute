@@ -1,4 +1,5 @@
 !/build/*
+!/README.md
 /node_modules/*
 /src/*
 
