@@ -142,21 +142,24 @@ const getElement = async (route: string, info: RouteInfo) => {
   };
 };
 
+const HOST = '0.0.0.0';
+
 const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   // eslint-disable-next-line no-console
   console.log('Building...');
+  const httpsS = serveHttps ? 's' : '';
 
   const startTime = Date.now();
   // Set environment variables
   process.env.NODE_ENV = watch ? 'development' : 'production';
   const PORT = process.env.PORT || '3000';
   const BUILD_PORT = process.env.BUILD_PORT || '4000';
-  const URL = (process.env.URL || `https://localhost:${PORT}`).replace(
+  const URL = (process.env.URL || `http${httpsS}://${HOST}:${PORT}`).replace(
     MATCHES_TRAILING_SLASH,
     ''
   );
   const BUILD_URL = (
-    process.env.BUILD_URL || `http://localhost:${BUILD_PORT}`
+    process.env.BUILD_URL || `http${httpsS}://${HOST}:${BUILD_PORT}`
   ).replace(MATCHES_TRAILING_SLASH, '');
   const API_URL = process.env.API_URL || `${process.env.URL}/api/`;
   const BUILD_API_URL = process.env.BUILD_API_URL || `${BUILD_URL}/api/`;
@@ -800,7 +803,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     process.env.URL = URL;
     process.env.API_URL = API_URL;
 
-    server.listen(parseInt(process.env.PORT, 10), '0.0.0.0', () => {
+    server.listen(parseInt(process.env.PORT, 10), HOST, () => {
       // eslint-disable-next-line no-console
       console.log(`Dev server running at ${URL} (port ${PORT})`);
     });
