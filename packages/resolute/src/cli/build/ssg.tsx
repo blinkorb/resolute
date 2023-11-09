@@ -147,9 +147,10 @@ const HOST = '0.0.0.0';
 const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   // eslint-disable-next-line no-console
   console.log('Building...');
-  const httpsS = serveHttps ? 's' : '';
 
+  const httpsS = serveHttps ? 's' : '';
   const startTime = Date.now();
+
   // Set environment variables
   process.env.NODE_ENV = watch ? 'development' : 'production';
   const PORT = process.env.PORT || '3000';
