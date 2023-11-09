@@ -78,13 +78,15 @@ Add a type to the `package.json`:
 }
 ```
 
-You can now run the project with:
+You can run the project with (but wait til we've setup our tsconfig and settings first):
 
 ```shell
 npm run dev
 ```
 
 The dev server is not yet complete, so you will need to manually rebuild the project after each change.
+
+The dev server can also by run with SSL by providing `resolute dev --https`. If you do so you should git ignore the `*.pem` files (certificates) this creates.
 
 Open another terminal to rebuild your project with:
 
@@ -95,6 +97,32 @@ npm run build
 #### Project Structure
 
 Create a `src` directory in the root of your project. This is where you will put all of your source code.
+
+#### Environment Variables
+
+Create a `.env` file in the root of your project, and paste in the following default values.
+
+```shell
+# Used for the dev server
+PORT=3000
+URL=http://0.0.0.0:3000
+API_URL=http://0.0.0.0:3000/api
+
+# Used during the build process
+BUILD_PORT=4000
+BUILD_URL=http://0.0.0.0:4000
+BUILD_API_URL=http://0.0.0.0:4000/api
+```
+
+This file should be git ignored.
+
+If you run the dev server with `--https` you should update the environment variables to reflect this.
+
+You can also define your own variables in this file and access them from `process.env.WHATEVER`.
+
+Only the default variables mentioned above, and any variables starting with `CLIENT_` can be accessed by client files.
+
+All variables can be accessed by server files.
 
 #### TypeScript Config
 
