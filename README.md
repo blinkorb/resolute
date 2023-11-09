@@ -353,6 +353,8 @@ export const getExample = async () => ({
 });
 ```
 
+Due to the dev server not currently watching for changes you will need to restart this for changes to take effect.
+
 This will create one or more API endpoints under `/api/example/`.
 
 Any functions exported from an `*.api.ts` file will be exposed as an API endpoint.
