@@ -506,6 +506,12 @@ const Example = () => (
 );
 ```
 
+### Other Static/Public Files
+
+Any files in the `public` directory will be copied into the output directory, allowing you to include static assets like images, fonts, etc.
+
+If you create a `/public/favicon.ico` the file will be available as `/favicon.ico` in your source code.
+
 ### Hooks
 
 #### useIsClientRender
