@@ -19,9 +19,9 @@ const createAPI =
     const resolvedPathname = `${(process.env.API_URL || '').replace(
       MATCHES_TRAILING_SLASH,
       '/'
-    )}${toAPIPath(pathname, fn)}${
+    )}${toAPIPath(pathname, fn).replace(/\/+/g, '/')}${
       queryParamsString ? `?${queryParamsString}` : ''
-    }`.replace(/\/+/g, '/');
+    }`;
 
     return fetch(resolvedPathname, {
       method: (method || 'get').toUpperCase(),
