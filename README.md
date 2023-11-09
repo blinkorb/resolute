@@ -345,6 +345,8 @@ Example:
 
 ### API
 
+WARNING: this does not currently work. It will be fixed in the next patch version.
+
 Create an `example.api.ts` file in the `src` directory and add the following content:
 
 ```ts
@@ -352,6 +354,8 @@ export const getExample = async () => ({
   example: 'example',
 });
 ```
+
+Due to the dev server not currently watching for changes you will need to restart this for changes to take effect.
 
 This will create one or more API endpoints under `/api/example/`.
 
