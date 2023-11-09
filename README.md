@@ -2,6 +2,8 @@
 
 **Bleeding edge React static/server side rendering framework**
 
+⭐️ Star us on [GitHub](https://github.com/blinkorb/resolute/) and join the resolution!
+
 ## About
 
 Resolute is a TypeScript first (and only at this point) static site generator/server side rendering framework.
