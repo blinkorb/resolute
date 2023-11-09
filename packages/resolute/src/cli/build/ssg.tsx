@@ -60,6 +60,8 @@ import { compileBabel, compileTypeScript } from '../utils/compile.js';
 import { getAllDependencies, getVersionMap } from '../utils/deps.js';
 import {
   fromServerPathToRelativeTSX,
+  getDepth,
+  isPartialPathMatch,
   isPartialRouteMatch,
   pathnameToRoute,
   toStaticPath,
@@ -467,14 +469,23 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     .map(({ pathname, route }) => ({
       pathname,
       route,
-      depth: pathname.split('/').length,
+      depth: getDepth(pathname, SERVER_PATHNAME),
     }));
 
   // Add layouts to route mapping
   const routeMappingWithLayouts = Object.fromEntries(
     Object.entries(routeMapping).map(([route, info]) => {
       const newInfo = layouts.reduce<RouteInfoWithLayoutInfo>((acc, layout) => {
-        if (isPartialRouteMatch(route, layout.route)) {
+        const pathname =
+          info.client || info.static || info.page || info.markdown!;
+
+        if (
+          isPartialRouteMatch(route, layout.route) &&
+          isPartialPathMatch(
+            path.relative(SERVER_PATHNAME, pathname),
+            path.relative(SERVER_PATHNAME, layout.pathname)
+          )
+        ) {
           return {
             ...acc,
             layouts: [...acc.layouts, layout],
