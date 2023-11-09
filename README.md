@@ -347,8 +347,6 @@ Example:
 
 ### API
 
-WARNING: this does not currently work. It will be fixed in the next patch version.
-
 Create an `example.api.ts` file in the `src` directory and add the following content:
 
 ```ts
