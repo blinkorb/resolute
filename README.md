@@ -107,6 +107,8 @@ You can create a `.env` file in the root of your project to define environment v
 The default variables are:
 
 ```shell
+HOST='0.0.0.0'
+
 # Used for the dev server
 PORT=3000
 URL=http://0.0.0.0:3000

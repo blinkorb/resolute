@@ -155,8 +155,6 @@ const getElement = async (route: string, info: RouteInfo) => {
   };
 };
 
-const HOST = '0.0.0.0';
-
 const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   // eslint-disable-next-line no-console
   console.log('Building...');
@@ -165,6 +163,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   const startTime = Date.now();
 
   // Set environment variables
+  const HOST = process.env.HOST || '0.0.0.0';
   process.env.NODE_ENV = watch ? 'development' : 'production';
   const PORT = process.env.PORT || '3000';
   const BUILD_PORT = process.env.BUILD_PORT || '4000';
