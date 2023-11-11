@@ -172,7 +172,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     ''
   );
   const BUILD_URL = (
-    process.env.BUILD_URL || `http${httpsS}://${HOST}:${BUILD_PORT}`
+    process.env.BUILD_URL || `http://${HOST}:${BUILD_PORT}`
   ).replace(MATCHES_TRAILING_SLASH, '');
   const API_URL = process.env.API_URL || `${URL}/api/`;
   const BUILD_API_URL = process.env.BUILD_API_URL || `${BUILD_URL}/api/`;
