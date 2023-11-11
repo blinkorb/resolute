@@ -18,6 +18,7 @@ import { Helmet } from 'react-helmet';
 import { createGenerateId, JssProvider, SheetsRegistry } from 'react-jss';
 import ReactMarkdown from 'react-markdown';
 import { rimrafSync } from 'rimraf';
+import { Server as SocketIoServer } from 'socket.io';
 
 import {
   MATCHES_TRAILING_SLASH,
@@ -829,6 +830,18 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     process.env.PORT = PORT;
     process.env.URL = URL;
     process.env.API_URL = API_URL;
+
+    const io = new SocketIoServer(server);
+
+    io.on('connection', (socket) => {
+      // eslint-disable-next-line no-console
+      console.log('Client connected');
+
+      socket.on('disconnect', () => {
+        // eslint-disable-next-line no-console
+        console.log('Client disconnected');
+      });
+    });
 
     watchTypeScript(SRC_PATHNAME, SERVER_PATHNAME);
 

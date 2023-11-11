@@ -469,3 +469,9 @@ globalThis.addEventListener('popstate', () => {
 });
 
 loadPage(globalThis.location);
+
+if (process.env.NODE_ENV === 'development') {
+  const { default: connectToDevServer } = await import('./io-client.js');
+
+  connectToDevServer();
+}
