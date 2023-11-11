@@ -74,7 +74,8 @@ export interface Router {
     options?: NavigateOptions
   ) => void;
   go: (delta: number) => void;
-  back: () => void;
+  back: (options?: Pick<NavigateOptions, 'scrollToTop'>) => void;
+  forward: (options?: Pick<NavigateOptions, 'scrollToTop'>) => void;
 }
 
 export interface NavigateOptions {

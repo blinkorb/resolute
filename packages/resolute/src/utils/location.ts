@@ -1,4 +1,4 @@
-import { AnyObject, LocationInfo, NavigateOptions } from '../types.js';
+import { AnyObject, LocationInfo, NavigateOptions, Router } from '../types.js';
 import { withLeadingAndTrailingSlash } from './paths.js';
 
 export const getLocationInfo = (
@@ -26,7 +26,7 @@ export const getRouter = (
     History,
     'pushState' | 'replaceState' | 'go' | 'back' | 'forward'
   >
-) => ({
+): Router => ({
   navigate: (
     pathname: string,
     state?: AnyObject,

@@ -8,6 +8,7 @@
 /packages/*/server/*
 /packages/*/build/*
 /packages/*/dist/*
+/packages/resolute/README.md
 /.vscode/*
 
 .DS_Store

@@ -7,7 +7,7 @@ const Layout = ({
 }) => {
   return (
     <>
-      <p>Hello</p>
+      <p>Nested Layout in Hidden Route</p>
       {children}
     </>
   );

@@ -26,7 +26,12 @@ import {
 } from '../../constants.js';
 import { RequestMethod } from '../../index.js';
 import Page from '../../page.js';
-import { LayoutJSON, PageDataJSON, ResoluteSettings } from '../../types.js';
+import {
+  LayoutJSON,
+  PageDataJSON,
+  ResoluteSettings,
+  Router,
+} from '../../types.js';
 import {
   getInjectedProps,
   getModuleElement,
@@ -65,6 +70,8 @@ import {
 import { getAllDependencies, getVersionMap } from '../utils/deps.js';
 import {
   fromServerPathToRelativeTSX,
+  getDepth,
+  isPartialPathMatch,
   isPartialRouteMatch,
   pathnameToRoute,
   toStaticPath,
@@ -147,23 +154,27 @@ const getElement = async (route: string, info: RouteInfo) => {
   };
 };
 
+const HOST = '0.0.0.0';
+
 const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   // eslint-disable-next-line no-console
   console.log('Building...');
 
+  const httpsS = serveHttps ? 's' : '';
   const startTime = Date.now();
+
   // Set environment variables
   process.env.NODE_ENV = watch ? 'development' : 'production';
   const PORT = process.env.PORT || '3000';
   const BUILD_PORT = process.env.BUILD_PORT || '4000';
-  const URL = (process.env.URL || `https://localhost:${PORT}`).replace(
+  const URL = (process.env.URL || `http${httpsS}://${HOST}:${PORT}`).replace(
     MATCHES_TRAILING_SLASH,
     ''
   );
   const BUILD_URL = (
-    process.env.BUILD_URL || `http://localhost:${BUILD_PORT}`
+    process.env.BUILD_URL || `http${httpsS}://${HOST}:${BUILD_PORT}`
   ).replace(MATCHES_TRAILING_SLASH, '');
-  const API_URL = process.env.API_URL || `${process.env.URL}/api/`;
+  const API_URL = process.env.API_URL || `${URL}/api/`;
   const BUILD_API_URL = process.env.BUILD_API_URL || `${BUILD_URL}/api/`;
 
   process.env.PORT = PORT;
@@ -468,14 +479,23 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     .map(({ pathname, route }) => ({
       pathname,
       route,
-      depth: pathname.split('/').length,
+      depth: getDepth(pathname, SERVER_PATHNAME),
     }));
 
   // Add layouts to route mapping
   const routeMappingWithLayouts = Object.fromEntries(
     Object.entries(routeMapping).map(([route, info]) => {
       const newInfo = layouts.reduce<RouteInfoWithLayoutInfo>((acc, layout) => {
-        if (isPartialRouteMatch(route, layout.route)) {
+        const pathname =
+          info.client || info.static || info.page || info.markdown!;
+
+        if (
+          isPartialRouteMatch(route, layout.route) &&
+          isPartialPathMatch(
+            path.relative(SERVER_PATHNAME, pathname),
+            path.relative(SERVER_PATHNAME, layout.pathname)
+          )
+        ) {
           return {
             ...acc,
             layouts: [...acc.layouts, layout],
@@ -648,7 +668,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
             throw new Error('You cannot navigate in an ssg/ssr context');
           };
 
-          const router = {
+          const router: Router = {
             navigate: throwNavigationError,
             go: throwNavigationError,
             back: throwNavigationError,
@@ -844,7 +864,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
         }
       });
 
-    server.listen(parseInt(process.env.PORT, 10), '0.0.0.0', () => {
+    server.listen(parseInt(process.env.PORT, 10), HOST, () => {
       // eslint-disable-next-line no-console
       console.log(`Dev server running at ${URL} (port ${PORT})`);
     });

@@ -11,6 +11,13 @@ import {
   SRC_PATHNAME,
 } from '../constants.js';
 
+export const getDepth = (pathname: string, root: string) => {
+  const relative = path.relative(root, pathname);
+  const depth = relative.split('/').length;
+
+  return depth;
+};
+
 export const fromServerPathToRelativeTSX = (pathname: string) => {
   const resolved = path.resolve(
     SRC_PATHNAME,
@@ -42,10 +49,34 @@ export const pathnameToRoute = (pathname: string, root: string) =>
     // Remove namespace and js extension
     .replace(/\.(page|client|static|server|layout)\.js$/, '/');
 
+export const pathnameToRouteWithHidden = (pathname: string) =>
+  pathname
+    // Make absolute
+    .replace(/^(\.\/)?/, '/')
+    // Resolve index.md
+    .replace(/\/index\.(md|markdown)$/, '/')
+    // Remove markdown extension
+    .replace(/\.(md|markdown)$/, '/')
+    // Resolve module.index.js
+    .replace(/\/index\.(page|client|static|server|layout)\.js$/, '/')
+    // Resolve index.html
+    .replace(/\/index\.html$/, '/')
+    // Remove namespace and js extension
+    .replace(/\.(page|client|static|server|layout)\.js$/, '/');
+
 export const isPartialRouteMatch = (route: string, match: string) =>
   withLeadingAndTrailingSlash(route).startsWith(
     withLeadingAndTrailingSlash(match)
   );
+
+export const isPartialPathMatch = (
+  pathname: string,
+  layoutPathname: string
+) => {
+  return pathnameToRouteWithHidden(pathname).startsWith(
+    pathnameToRouteWithHidden(layoutPathname)
+  );
+};
 
 export const toStaticPath = (
   pathname: string,
