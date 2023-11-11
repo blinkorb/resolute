@@ -150,6 +150,26 @@ You can use whatever options you like within here, but it _must_ include:
 }
 ```
 
+You can set the `include` option in here to be the `src` directory, and any other directories that include TypeScript files, such as tests e.g.
+
+```json
+{
+  "include": ["src", "tests"]
+}
+```
+
+You should also create a `tsconfig.resolute.json` which extends your base `tsconfig.json`.
+
+We use a separate `tsconfig.resolute.json` so that you can `include` only files that will make up your site/app, and exclude other files such as tests e.g.
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "include": ["src"],
+  "exclude": ["src/**/*.test.*"]
+}
+```
+
 #### Settings
 
 Create a `resolute.settings.tsx` file in the `src` directory and add the following content:
