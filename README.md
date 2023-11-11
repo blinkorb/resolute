@@ -160,7 +160,7 @@ You can set the `include` option in here to be the `src` directory, and any othe
 
 You should also create a `tsconfig.resolute.json` which extends your base `tsconfig.json`.
 
-We use a separate `tsconfig.resolute.json` so that you can `include` only files that will make up your site/app, and exclude other files such as tests e.g.
+We use a separate `tsconfig.resolute.json` so that you can `include` only files that will make up your site/app, and `exclude` other files such as tests e.g.
 
 ```json
 {
