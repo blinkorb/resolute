@@ -5,12 +5,12 @@ const connectToDevServer = () => {
 
   io.on('connect', () => {
     // eslint-disable-next-line no-console
-    console.log('Client connected');
+    console.log('Dev server connected');
   });
 
   io.on('disconnect', () => {
     // eslint-disable-next-line no-console
-    console.log('Client disconnected');
+    console.log('Dev server disconnected');
   });
 };
 

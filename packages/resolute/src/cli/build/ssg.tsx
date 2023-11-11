@@ -835,11 +835,11 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
 
     io.on('connection', (socket) => {
       // eslint-disable-next-line no-console
-      console.log('Client connected');
+      console.log('Dev server connected');
 
       socket.on('disconnect', () => {
         // eslint-disable-next-line no-console
-        console.log('Client disconnected');
+        console.log('Dev server disconnected');
       });
     });
 
