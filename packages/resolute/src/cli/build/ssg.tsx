@@ -1,7 +1,6 @@
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
-import https from 'node:https';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
@@ -19,6 +18,7 @@ import { createGenerateId, JssProvider, SheetsRegistry } from 'react-jss';
 import ReactMarkdown from 'react-markdown';
 import { rimrafSync } from 'rimraf';
 import { Server as SocketIoServer } from 'socket.io';
+import spdy from 'spdy';
 
 import {
   MATCHES_TRAILING_SLASH,
@@ -828,7 +828,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     }
 
     const server = serveHttps
-      ? https.createServer(
+      ? spdy.createServer(
           {
             key: fs.readFileSync('key.pem', 'utf8'),
             cert: fs.readFileSync('cert.pem', 'utf8'),

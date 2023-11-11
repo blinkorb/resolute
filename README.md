@@ -88,7 +88,7 @@ npm run dev
 
 The dev server is not yet complete, so you will need to manually rebuild the project after each change.
 
-The dev server can also by run with SSL by providing `resolute dev --https`. If you do so you should git ignore the `*.pem` files (certificates) this creates.
+The dev server can also by run over HTTP2 with SSL by providing `--ssl`, `--https` or `--http2`. If you do so you should git ignore the `*.pem` files (certificates) this creates.
 
 Open another terminal to rebuild your project with:
 
