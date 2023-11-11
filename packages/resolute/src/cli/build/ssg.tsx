@@ -247,7 +247,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   });
 
   // Get all non-resolute resolute dependencies
-  const { list: resoluteClientDependencies } =
+  const { list: resoluteClientDependencies, modules: resoluteModules } =
     await getAllDependencies(resoluteClientFiles);
 
   // De-duplicate dependencies
@@ -295,7 +295,10 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
           encoding: 'utf8',
         });
 
-        const code = compileBabel(content, pathname, ['NODE_ENV'], true);
+        const code = compileBabel(content, pathname, ['NODE_ENV'], true, [
+          ...pageModules,
+          ...resoluteModules,
+        ]);
 
         fs.writeFileSync(outPath, code, { encoding: 'utf8' });
       })
@@ -327,7 +330,8 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
               key.startsWith('CLIENT_')
             ),
           ],
-          false
+          false,
+          []
         );
 
         fs.writeFileSync(outPath, code, { encoding: 'utf8' });
@@ -354,7 +358,8 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
         content,
         pathname,
         ['NODE_ENV', 'PORT', 'URL', 'API_URL'],
-        false
+        false,
+        []
       );
 
       fs.writeFileSync(outPath, code, { encoding: 'utf8' });

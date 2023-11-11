@@ -2,6 +2,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import { transformSync } from '@babel/core';
+import { IModule } from 'dependency-cruiser';
 import ts from 'typescript';
 
 import commonjsToEsm from '../babel/commonjs-to-esm.js';
@@ -169,7 +170,8 @@ export const compileBabel = (
   content: string,
   pathname: string,
   envVars: readonly string[],
-  commonjs: boolean
+  commonjs: boolean,
+  modules: IModule[]
 ) => {
   const babelResult = transformSync(content, {
     filename: pathname,
@@ -179,7 +181,7 @@ export const compileBabel = (
         { include: envVars },
       ],
       require.resolve('babel-plugin-minify-dead-code-elimination'),
-      ...(commonjs ? [commonjsToEsm] : []),
+      ...(commonjs ? [commonjsToEsm(modules)] : []),
       ...(commonjs ? [require.resolve('babel-plugin-transform-commonjs')] : []),
     ],
     minified: true,
