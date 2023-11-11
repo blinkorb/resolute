@@ -695,7 +695,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
             const generateId = createGenerateId();
 
             // Render page
-            const body = renderToString(
+            const body = `<div data-resolute-root="true" id="resolute-root">${renderToString(
               <JssProvider registry={sheets} generateId={generateId}>
                 <Page
                   location={location}
@@ -707,7 +707,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
                   {withLayouts}
                 </Page>
               </JssProvider>
-            );
+            )}</div>`;
 
             const helmet = Helmet.renderStatic();
             const headStyles = `<style type="text/css" data-jss>${sheets.toString(

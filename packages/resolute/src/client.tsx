@@ -69,6 +69,9 @@ const history = {
   },
 };
 
+const getRootElement = () =>
+  globalThis.document.getElementById('resolute-root')!;
+
 interface ClientRenderer {
   root: Root;
   static?: false;
@@ -299,7 +302,7 @@ const updatePage = async (
         prevPage.root.unmount();
       }
 
-      globalThis.document.body.innerHTML = `<p style="color: red;">${cache.message}</p>`;
+      getRootElement().innerHTML = `<p style="color: red;">${cache.message}</p>`;
     } else {
       globalThis.location.reload();
     }
@@ -326,7 +329,7 @@ const updatePage = async (
       if (prevPage?.root) {
         prevPage.root.render(page);
       } else if (prevPage?.static || cache.pageModule.hydrate === false) {
-        const root = createRoot(globalThis.document.body);
+        const root = createRoot(getRootElement());
         root.render(page);
         prevPage = {
           root,
@@ -346,7 +349,7 @@ const updatePage = async (
         });
       } else {
         prevPage = {
-          root: hydrateRoot(globalThis.document.body, page),
+          root: hydrateRoot(getRootElement(), page),
         };
       }
     }
@@ -357,7 +360,7 @@ const updatePage = async (
 
     if (prevPage) {
       globalThis.document.head.innerHTML = cache.resolutePageJson.static.head;
-      globalThis.document.body.innerHTML = cache.resolutePageJson.static.body;
+      getRootElement().innerHTML = cache.resolutePageJson.static.body;
 
       reFocusActiveElement(
         globalThis.document.body,
