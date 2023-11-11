@@ -164,6 +164,8 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
 
   // Set environment variables
   const HOST = process.env.HOST || '0.0.0.0';
+  const BUILD_HOST = process.env.BUILD_HOST || 'localhost';
+
   process.env.NODE_ENV = watch ? 'development' : 'production';
   const PORT = process.env.PORT || '3000';
   const BUILD_PORT = process.env.BUILD_PORT || '4000';
@@ -172,11 +174,12 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     ''
   );
   const BUILD_URL = (
-    process.env.BUILD_URL || `http://${HOST}:${BUILD_PORT}`
+    process.env.BUILD_URL || `http://${BUILD_HOST}:${BUILD_PORT}`
   ).replace(MATCHES_TRAILING_SLASH, '');
   const API_URL = process.env.API_URL || `${URL}/api/`;
   const BUILD_API_URL = process.env.BUILD_API_URL || `${BUILD_URL}/api/`;
 
+  process.env.HOST = HOST;
   process.env.PORT = PORT;
   process.env.URL = URL;
   process.env.API_URL = API_URL;
@@ -577,6 +580,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
       })
   );
 
+  process.env.HOST = BUILD_HOST;
   process.env.PORT = BUILD_PORT;
   process.env.URL = BUILD_URL;
   process.env.API_URL = BUILD_API_URL;
@@ -585,226 +589,232 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   console.log('Starting build server...');
 
   await new Promise((resolve) => {
-    const expressServer = app.listen(process.env.PORT, async () => {
-      await Promise.all(
-        Object.entries(routeMappingWithLayouts).map(async ([route, info]) => {
-          const clientPathname = info.client || info.page;
-          const { element, pageProps, meta, location, href, pathname } =
-            await getElement(route, info);
+    const expressServer = app.listen(
+      parseInt(process.env.PORT!, 10),
+      BUILD_HOST,
+      async () => {
+        await Promise.all(
+          Object.entries(routeMappingWithLayouts).map(async ([route, info]) => {
+            const clientPathname = info.client || info.page;
+            const { element, pageProps, meta, location, href, pathname } =
+              await getElement(route, info);
 
-          // Wrap page with layouts
-          const { element: withLayouts, layoutsJSON } =
-            await info.layouts.reduce<
-              Promise<{
-                element: ReactElement;
-                layoutsJSON: readonly LayoutJSON[];
-              }>
-            >(
-              async (accPromise, layout) => {
-                const acc = await accPromise;
-                const layoutModule = await getModule(layout);
-                const layoutProps = await getProps(layoutModule, layout);
-                const layoutElement = await getModuleElement(
-                  layoutModule,
-                  fromServerPathToRelativeTSX(layout),
-                  getInjectedProps(
+            // Wrap page with layouts
+            const { element: withLayouts, layoutsJSON } =
+              await info.layouts.reduce<
+                Promise<{
+                  element: ReactElement;
+                  layoutsJSON: readonly LayoutJSON[];
+                }>
+              >(
+                async (accPromise, layout) => {
+                  const acc = await accPromise;
+                  const layoutModule = await getModule(layout);
+                  const layoutProps = await getProps(layoutModule, layout);
+                  const layoutElement = await getModuleElement(
                     layoutModule,
-                    pathname,
-                    href,
-                    layoutProps,
-                    acc.element,
-                    'static'
-                  )
-                );
+                    fromServerPathToRelativeTSX(layout),
+                    getInjectedProps(
+                      layoutModule,
+                      pathname,
+                      href,
+                      layoutProps,
+                      acc.element,
+                      'static'
+                    )
+                  );
 
-                return {
-                  element: layoutElement,
-                  layoutsJSON: [
-                    ...acc.layoutsJSON,
-                    {
-                      pathname: layout,
-                      props: layoutProps,
-                    },
-                  ],
-                };
-              },
-              Promise.resolve({ element, layoutsJSON: [] })
-            );
-
-          const pageFiles = [
-            require.resolve(SCOPED_CLIENT),
-            ...(clientPathname
-              ? [
-                  clientPathname,
-                  ...layoutsJSON.map((layout) => layout.pathname),
-                ]
-              : []),
-          ];
-
-          const { list: pageDependencies } =
-            await getAllDependencies(pageFiles);
-
-          const uniquePageDependencies = [
-            {
-              // Manually included as this is a dynamic import
-              module: '/resolute.settings.js',
-              resolved: 'server/resolute.settings.js',
-            },
-            // Include client file and layouts if it can be hydrated
-            ...(clientPathname
-              ? [
-                  {
-                    module: `./${path.basename(clientPathname)}`,
-                    resolved: path.relative(CWD, clientPathname),
-                  },
-                  ...layoutsJSON.map((layout) => ({
-                    module: `./${path.basename(layout.pathname)}`,
-                    resolved: path.relative(CWD, layout.pathname),
-                  })),
-                ]
-              : []),
-            ...pageDependencies,
-          ].filter(
-            (dep, index, context) =>
-              context.findIndex((d) => d.resolved === dep.resolved) === index
-          );
-
-          const throwNavigationError = () => {
-            throw new Error('You cannot navigate in an ssg/ssr context');
-          };
-
-          const router: Router = {
-            navigate: throwNavigationError,
-            go: throwNavigationError,
-            back: throwNavigationError,
-            forward: throwNavigationError,
-          };
-
-          const preload = () => {
-            throw new Error('You cannot preload in an ssg/ssr context');
-          };
-
-          const sheets = new SheetsRegistry();
-          const generateId = createGenerateId();
-
-          // Render page
-          const body = renderToString(
-            <JssProvider registry={sheets} generateId={generateId}>
-              <Page
-                location={location}
-                router={router}
-                meta={meta}
-                settings={settings}
-                preload={preload}
-              >
-                {withLayouts}
-              </Page>
-            </JssProvider>
-          );
-
-          const helmet = Helmet.renderStatic();
-          const headStyles = `<style type="text/css" data-jss>${sheets.toString(
-            {
-              format: false,
-            }
-          )}</style>`;
-
-          // Collect head info from helmet
-          const headHelmet = [
-            helmet.title.toString(),
-            helmet.meta.toString(),
-            helmet.link.toString(),
-            helmet.style.toString(),
-            helmet.script.toString(),
-          ]
-            .filter((str) => str)
-            .join('\n');
-
-          const resoluteClientHref = `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js`;
-
-          // Construct import map
-          const importMap = `<script type="importmap">${JSON.stringify({
-            imports: nodeModuleDependencies
-              .filter((dep) => !MATCHES_LOCAL.test(dep.module))
-              .reduce(
-                (acc, dep) => {
                   return {
-                    ...acc,
-                    [dep.module]: `/${toStaticPath(
-                      dep.resolved,
-                      nodeModulesVersionMap
-                    )}`,
+                    element: layoutElement,
+                    layoutsJSON: [
+                      ...acc.layoutsJSON,
+                      {
+                        pathname: layout,
+                        props: layoutProps,
+                      },
+                    ],
                   };
                 },
-                {
-                  [SCOPED_CLIENT]: resoluteClientHref,
-                }
-              ),
-          })}</script>`;
+                Promise.resolve({ element, layoutsJSON: [] })
+              );
 
-          const resoluteClient = `<script defer type="module" src="${resoluteClientHref}"></script>`;
-          const modulePreload = uniquePageDependencies
-            .map((dep) => {
-              return `<link rel="modulepreload" href="/${toStaticPath(
-                dep.resolved,
-                nodeModulesVersionMap
-              )}" />`;
-            })
-            .join('');
+            const pageFiles = [
+              require.resolve(SCOPED_CLIENT),
+              ...(clientPathname
+                ? [
+                    clientPathname,
+                    ...layoutsJSON.map((layout) => layout.pathname),
+                  ]
+                : []),
+            ];
 
-          const staticHead = `${headHelmet}${importMap}${modulePreload}${headStyles}`;
+            const { list: pageDependencies } =
+              await getAllDependencies(pageFiles);
 
-          const html = `<!DOCTYPE html><html><head>${staticHead}${resoluteClient}</head><body data-render-state="rendering">${body}</body></html>\n`;
-
-          const outFileHTML = path.resolve(
-            STATIC_PATHNAME,
-            route.replace(/^\/?/, ''),
-            'index.html'
-          );
-          const outDir = path.dirname(outFileHTML);
-          const outFileJSON = path.resolve(outDir, 'resolute.json');
-
-          const json = (
-            clientPathname
-              ? {
-                  client: {
-                    pathname: path
-                      .relative(SERVER_PATHNAME, clientPathname)
-                      .replace(/^(\.?\/)?/, '/'),
-                    layouts: layoutsJSON.map((layout) => ({
-                      ...layout,
-                      pathname: `/${path.relative(
-                        SERVER_PATHNAME,
-                        layout.pathname
-                      )}`,
+            const uniquePageDependencies = [
+              {
+                // Manually included as this is a dynamic import
+                module: '/resolute.settings.js',
+                resolved: 'server/resolute.settings.js',
+              },
+              // Include client file and layouts if it can be hydrated
+              ...(clientPathname
+                ? [
+                    {
+                      module: `./${path.basename(clientPathname)}`,
+                      resolved: path.relative(CWD, clientPathname),
+                    },
+                    ...layoutsJSON.map((layout) => ({
+                      module: `./${path.basename(layout.pathname)}`,
+                      resolved: path.relative(CWD, layout.pathname),
                     })),
-                  },
-                  static: {
-                    head: staticHead,
-                    meta,
-                    props: pageProps,
-                  },
-                }
-              : {
-                  static: { head: staticHead, body },
-                }
-          ) satisfies PageDataJSON;
+                  ]
+                : []),
+              ...pageDependencies,
+            ].filter(
+              (dep, index, context) =>
+                context.findIndex((d) => d.resolved === dep.resolved) === index
+            );
 
-          // Output json and html for page
-          mkdirpSync(outDir);
-          fs.writeFileSync(outFileHTML, html, { encoding: 'utf8' });
-          fs.writeFileSync(outFileJSON, JSON.stringify(json), {
-            encoding: 'utf8',
-          });
-        })
-      );
+            const throwNavigationError = () => {
+              throw new Error('You cannot navigate in an ssg/ssr context');
+            };
 
-      // eslint-disable-next-line no-console
-      console.log(`Built in ${((Date.now() - startTime) / 1000).toFixed(2)}s`);
-      // eslint-disable-next-line no-console
-      console.log('Closing build server...');
-      resolve(expressServer.close());
-    });
+            const router: Router = {
+              navigate: throwNavigationError,
+              go: throwNavigationError,
+              back: throwNavigationError,
+              forward: throwNavigationError,
+            };
+
+            const preload = () => {
+              throw new Error('You cannot preload in an ssg/ssr context');
+            };
+
+            const sheets = new SheetsRegistry();
+            const generateId = createGenerateId();
+
+            // Render page
+            const body = renderToString(
+              <JssProvider registry={sheets} generateId={generateId}>
+                <Page
+                  location={location}
+                  router={router}
+                  meta={meta}
+                  settings={settings}
+                  preload={preload}
+                >
+                  {withLayouts}
+                </Page>
+              </JssProvider>
+            );
+
+            const helmet = Helmet.renderStatic();
+            const headStyles = `<style type="text/css" data-jss>${sheets.toString(
+              {
+                format: false,
+              }
+            )}</style>`;
+
+            // Collect head info from helmet
+            const headHelmet = [
+              helmet.title.toString(),
+              helmet.meta.toString(),
+              helmet.link.toString(),
+              helmet.style.toString(),
+              helmet.script.toString(),
+            ]
+              .filter((str) => str)
+              .join('\n');
+
+            const resoluteClientHref = `/node-modules/${SCOPED_NAME}@${RESOLUTE_VERSION}/client.js`;
+
+            // Construct import map
+            const importMap = `<script type="importmap">${JSON.stringify({
+              imports: nodeModuleDependencies
+                .filter((dep) => !MATCHES_LOCAL.test(dep.module))
+                .reduce(
+                  (acc, dep) => {
+                    return {
+                      ...acc,
+                      [dep.module]: `/${toStaticPath(
+                        dep.resolved,
+                        nodeModulesVersionMap
+                      )}`,
+                    };
+                  },
+                  {
+                    [SCOPED_CLIENT]: resoluteClientHref,
+                  }
+                ),
+            })}</script>`;
+
+            const resoluteClient = `<script defer type="module" src="${resoluteClientHref}"></script>`;
+            const modulePreload = uniquePageDependencies
+              .map((dep) => {
+                return `<link rel="modulepreload" href="/${toStaticPath(
+                  dep.resolved,
+                  nodeModulesVersionMap
+                )}" />`;
+              })
+              .join('');
+
+            const staticHead = `${headHelmet}${importMap}${modulePreload}${headStyles}`;
+
+            const html = `<!DOCTYPE html><html><head>${staticHead}${resoluteClient}</head><body data-render-state="rendering">${body}</body></html>\n`;
+
+            const outFileHTML = path.resolve(
+              STATIC_PATHNAME,
+              route.replace(/^\/?/, ''),
+              'index.html'
+            );
+            const outDir = path.dirname(outFileHTML);
+            const outFileJSON = path.resolve(outDir, 'resolute.json');
+
+            const json = (
+              clientPathname
+                ? {
+                    client: {
+                      pathname: path
+                        .relative(SERVER_PATHNAME, clientPathname)
+                        .replace(/^(\.?\/)?/, '/'),
+                      layouts: layoutsJSON.map((layout) => ({
+                        ...layout,
+                        pathname: `/${path.relative(
+                          SERVER_PATHNAME,
+                          layout.pathname
+                        )}`,
+                      })),
+                    },
+                    static: {
+                      head: staticHead,
+                      meta,
+                      props: pageProps,
+                    },
+                  }
+                : {
+                    static: { head: staticHead, body },
+                  }
+            ) satisfies PageDataJSON;
+
+            // Output json and html for page
+            mkdirpSync(outDir);
+            fs.writeFileSync(outFileHTML, html, { encoding: 'utf8' });
+            fs.writeFileSync(outFileJSON, JSON.stringify(json), {
+              encoding: 'utf8',
+            });
+          })
+        );
+
+        // eslint-disable-next-line no-console
+        console.log(
+          `Built in ${((Date.now() - startTime) / 1000).toFixed(2)}s`
+        );
+        // eslint-disable-next-line no-console
+        console.log('Closing build server...');
+        resolve(expressServer.close());
+      }
+    );
   });
 
   if (watch) {
@@ -826,6 +836,8 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
           app
         )
       : http.createServer(app);
+
+    process.env.HOST = HOST;
     process.env.PORT = PORT;
     process.env.URL = URL;
     process.env.API_URL = API_URL;

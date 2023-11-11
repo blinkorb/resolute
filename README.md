@@ -107,17 +107,17 @@ You can create a `.env` file in the root of your project to define environment v
 The default variables are:
 
 ```shell
-HOST='0.0.0.0'
-
 # Used for the dev server
+HOST='0.0.0.0'
 PORT=3000
 URL=http://0.0.0.0:3000
 API_URL=http://0.0.0.0:3000/api
 
 # Used during the build process
+HOST=localhost
 BUILD_PORT=4000
-BUILD_URL=http://0.0.0.0:4000
-BUILD_API_URL=http://0.0.0.0:4000/api
+BUILD_URL=http://localhost:4000
+BUILD_API_URL=http://localhost:4000/api
 ```
 
 This file should be git ignored.
