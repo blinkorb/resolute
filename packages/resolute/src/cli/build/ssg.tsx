@@ -1,14 +1,18 @@
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
+import http2 from 'node:http2';
+import https from 'node:https';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
+import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
 import chokidar from 'chokidar';
 import cpy from 'cpy';
 import { config as dotenvConfig } from 'dotenv';
-import express from 'express';
 import { glob } from 'glob';
+import { Hono } from 'hono';
 import metadataParser from 'markdown-yaml-metadata-parser';
 import { mkdirpSync } from 'mkdirp';
 import React, { ReactElement } from 'react';
@@ -17,13 +21,13 @@ import { Helmet } from 'react-helmet';
 import { createGenerateId, JssProvider, SheetsRegistry } from 'react-jss';
 import ReactMarkdown from 'react-markdown';
 import { rimrafSync } from 'rimraf';
-import { Server as SocketIoServer } from 'socket.io';
-import spdy from 'spdy';
+import { WebSocketServer } from 'ws';
 
 import {
   MATCHES_TRAILING_SLASH,
   SCOPED_CLIENT,
   SCOPED_NAME,
+  WEB_SOCKET_PORT,
 } from '../../constants.js';
 import { RequestMethod } from '../../index.js';
 import Page from '../../page.js';
@@ -162,21 +166,21 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   const httpsS = serveHttps ? 's' : '';
   const startTime = Date.now();
 
-  // Set environment variables
-  const HOST = process.env.HOST || '0.0.0.0';
-  const BUILD_HOST = process.env.BUILD_HOST || 'localhost';
-
   process.env.NODE_ENV = watch ? 'development' : 'production';
+  // Set environment variables
   const PORT = process.env.PORT || '3000';
-  const BUILD_PORT = process.env.BUILD_PORT || '4000';
+  const HOST = process.env.HOST || '0.0.0.0';
   const URL = (process.env.URL || `http${httpsS}://${HOST}:${PORT}`).replace(
     MATCHES_TRAILING_SLASH,
     ''
   );
+  const API_URL = process.env.API_URL || `${URL}/api/`;
+
+  const BUILD_PORT = process.env.BUILD_PORT || '4000';
+  const BUILD_HOST = process.env.BUILD_HOST || 'localhost';
   const BUILD_URL = (
     process.env.BUILD_URL || `http://${BUILD_HOST}:${BUILD_PORT}`
   ).replace(MATCHES_TRAILING_SLASH, '');
-  const API_URL = process.env.API_URL || `${URL}/api/`;
   const BUILD_API_URL = process.env.BUILD_API_URL || `${BUILD_URL}/api/`;
 
   process.env.HOST = HOST;
@@ -537,13 +541,23 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     })
   ) satisfies RouteMapping;
 
-  const app = express();
+  const app = new Hono();
 
-  app.use(express.static(STATIC_PATHNAME));
+  app.use(
+    '/*',
+    serveStatic({
+      root: path.relative(CWD, STATIC_PATHNAME),
+    })
+  );
 
-  app.use('*', (req, res, next) => {
-    if (req.headers.accept?.includes('text/html')) {
-      return res.sendFile(path.resolve(STATIC_PATHNAME, '404/index.html'));
+  app.get('/*', async (context, next) => {
+    if (context.req.header('accept')?.includes('text/html')) {
+      const notFoundPathname = path.resolve(STATIC_PATHNAME, '404/index.html');
+      if (fs.existsSync(notFoundPathname)) {
+        return context.html(fs.readFileSync(notFoundPathname).toString(), 404);
+      }
+
+      return context.text('Not found', 404);
     }
 
     return next();
@@ -569,10 +583,10 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
 
             app[methodName as RequestMethod](
               resolvedPathname,
-              async (req, res) => {
-                const data = await callback(req);
+              async (context) => {
+                const data = await callback();
 
-                res.json(data);
+                return context.json(data);
               }
             );
           }
@@ -589,9 +603,12 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   console.log('Starting build server...');
 
   await new Promise((resolve) => {
-    const expressServer = app.listen(
-      parseInt(process.env.PORT!, 10),
-      BUILD_HOST,
+    const server = serve(
+      {
+        fetch: app.fetch,
+        port: parseInt(process.env.PORT!, 10),
+        hostname: BUILD_HOST,
+      },
       async () => {
         await Promise.all(
           Object.entries(routeMappingWithLayouts).map(async ([route, info]) => {
@@ -812,7 +829,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
         );
         // eslint-disable-next-line no-console
         console.log('Closing build server...');
-        resolve(expressServer.close());
+        resolve(server.close());
       }
     );
   });
@@ -832,19 +849,21 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     process.env.URL = URL;
     process.env.API_URL = API_URL;
 
-    const server = serveHttps
-      ? spdy.createServer(
-          {
-            key: fs.readFileSync('key.pem', 'utf8'),
-            cert: fs.readFileSync('cert.pem', 'utf8'),
-          },
-          app
-        )
-      : http.createServer(app);
+    const webSocketServerServer = serveHttps
+      ? https.createServer({
+          key: fs.readFileSync('key.pem', 'utf8'),
+          cert: fs.readFileSync('cert.pem', 'utf8'),
+        })
+      : http.createServer();
 
-    const io = new SocketIoServer(server);
+    const webSocketServer = new WebSocketServer({
+      server: webSocketServerServer,
+      path: '/resolute-dev-server',
+    });
 
-    io.on('connection', (socket) => {
+    webSocketServerServer.listen(WEB_SOCKET_PORT, HOST);
+
+    webSocketServer.on('connection', (socket) => {
       // eslint-disable-next-line no-console
       console.log('Dev server connected');
 
@@ -893,10 +912,36 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
         }
       });
 
-    server.listen(parseInt(process.env.PORT, 10), HOST, () => {
+    const logServerRunning = () => {
       // eslint-disable-next-line no-console
       console.log(`Dev server running at ${URL} (port ${PORT})`);
-    });
+    };
+
+    if (serveHttps) {
+      serve(
+        {
+          fetch: app.fetch,
+          port: parseInt(process.env.PORT, 10),
+          hostname: HOST,
+          createServer: http2.createSecureServer,
+          serverOptions: {
+            key: fs.readFileSync('key.pem', 'utf8'),
+            cert: fs.readFileSync('cert.pem', 'utf8'),
+          },
+        },
+        logServerRunning
+      );
+    } else {
+      serve(
+        {
+          fetch: app.fetch,
+          port: parseInt(process.env.PORT, 10),
+          hostname: HOST,
+          createServer: http.createServer,
+        },
+        logServerRunning
+      );
+    }
   }
 };
 

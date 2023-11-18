@@ -1,17 +1,21 @@
-import { connect } from 'socket.io-client';
+import { WEB_SOCKET_PORT } from './constants.js';
 
 const connectToDevServer = () => {
-  const io = connect(process.env.URL!);
+  const webSocketClient = new WebSocket(
+    `${globalThis.location.protocol.startsWith('https') ? 'wss://' : 'ws://'}${
+      globalThis.location.hostname
+    }:${WEB_SOCKET_PORT}/resolute-dev-server`
+  );
 
-  io.on('connect', () => {
+  webSocketClient.onopen = () => {
     // eslint-disable-next-line no-console
     console.log('Dev server connected');
-  });
+  };
 
-  io.on('disconnect', () => {
+  webSocketClient.onclose = () => {
     // eslint-disable-next-line no-console
     console.log('Dev server disconnected');
-  });
+  };
 };
 
 export default connectToDevServer;

@@ -1,5 +1,7 @@
 import { RequestMethod } from './types.js';
 
+export const WEB_SOCKET_PORT = 3333;
+
 export const SCOPE = '@blinkorb';
 export const NAME = 'resolute';
 export const SCOPED_NAME = `${SCOPE}/${NAME}`;
