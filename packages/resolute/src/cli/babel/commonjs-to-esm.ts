@@ -1,13 +1,12 @@
-import fs from 'node:fs';
 import path from 'node:path';
 
 import { PluginObj } from '@babel/core';
 import t from '@babel/types';
+import { IModule } from 'dependency-cruiser';
 
-import { MATCHES_JS_EXTENSION } from '../../constants.js';
-import { MATCHES_LOCAL } from '../constants.js';
+import { CWD, MATCHES_LOCAL } from '../constants.js';
 
-const commonjsToEsm: PluginObj = {
+const commonjsToEsm = (modules: IModule[]): PluginObj => ({
   visitor: {
     Directive(p) {
       const { node } = p;
@@ -142,30 +141,40 @@ const commonjsToEsm: PluginObj = {
         callee.type === 'Identifier' &&
         callee.name === 'require' &&
         args.length === 1 &&
-        args[0]!.type === 'StringLiteral' &&
-        MATCHES_LOCAL.test(args[0]!.value) &&
-        !MATCHES_JS_EXTENSION.test(args[0]!.value)
+        args[0] &&
+        args[0].type === 'StringLiteral' &&
+        MATCHES_LOCAL.test(args[0]!.value)
       ) {
+        const value = args[0].value;
+
         if (!this.file.opts.filename) {
+          throw new Error(`Could not get filename for require of "${value}"`);
+        }
+
+        const resolvedMod = modules.find(
+          (mod) => path.resolve(CWD, mod.source) === this.file.opts.filename
+        );
+
+        if (modules.length && !resolvedMod) {
           throw new Error(
-            `Could not get filename for require of "${args[0]!.value}"`
+            `Could not find resolved module for "${this.file.opts.filename}"`
           );
         }
 
-        if (
-          fs.existsSync(
-            path.resolve(
-              path.dirname(this.file.opts.filename),
-              args[0].value + '.js'
-            )
-          )
-        ) {
-          args[0].value += '.js';
-          return;
-        }
+        const resolvedDep = resolvedMod?.dependencies.find(
+          (dep) => dep.module === value
+        );
 
-        args[0].value += '/index.js';
-        return;
+        if (modules.length && resolvedDep) {
+          let resolvedPath = path.relative(
+            path.dirname(this.file.opts.filename),
+            path.resolve(CWD, resolvedDep.resolved)
+          );
+          resolvedPath = resolvedPath.startsWith('.')
+            ? resolvedPath
+            : `./${resolvedPath}`;
+          args[0].value = resolvedPath;
+        }
       }
 
       const [first, second, third] = node.arguments;
@@ -262,31 +271,87 @@ const commonjsToEsm: PluginObj = {
       // Add file extension to import statements
       if (
         node.source.type === 'StringLiteral' &&
-        MATCHES_LOCAL.test(node.source.value) &&
-        !MATCHES_JS_EXTENSION.test(node.source.value)
+        MATCHES_LOCAL.test(node.source.value)
       ) {
+        const value = node.source.value;
+
         if (!this.file.opts.filename) {
           throw new Error(
             `Could not get filename for require of "${node.source.value}"`
           );
         }
 
-        if (
-          fs.existsSync(
-            path.resolve(
-              path.dirname(this.file.opts.filename),
-              node.source.value + '.js'
-            )
-          )
-        ) {
-          node.source.value += '.js';
-          return;
+        const resolvedMod = modules.find(
+          (mod) => path.resolve(CWD, mod.source) === this.file.opts.filename
+        );
+
+        if (modules.length && !resolvedMod) {
+          throw new Error(
+            `Could not find resolved module for "${this.file.opts.filename}"`
+          );
         }
 
-        node.source.value += '/index.js';
-        return;
+        const resolvedDep = resolvedMod?.dependencies.find(
+          (dep) => dep.module === value
+        );
+
+        if (modules.length && resolvedDep) {
+          let resolvedPath = path.relative(
+            path.dirname(this.file.opts.filename),
+            path.resolve(CWD, resolvedDep.resolved)
+          );
+          resolvedPath = resolvedPath.startsWith('.')
+            ? resolvedPath
+            : `./${resolvedPath}`;
+          node.source.value = resolvedPath;
+        }
+      }
+    },
+    ExportDeclaration(p) {
+      const { node } = p;
+
+      // Add file extension to exported import statements
+      if (
+        node.type !== 'ExportDefaultDeclaration' &&
+        node.source &&
+        node.source.type === 'StringLiteral' &&
+        MATCHES_LOCAL.test(node.source.value)
+      ) {
+        const value = node.source.value;
+
+        if (!this.file.opts.filename) {
+          throw new Error(
+            `Could not get filename for require of "${node.source.value}"`
+          );
+        }
+
+        const resolvedMod = modules.find(
+          (mod) => path.resolve(CWD, mod.source) === this.file.opts.filename
+        );
+
+        if (modules.length && !resolvedMod) {
+          throw new Error(
+            `Could not find resolved module for "${this.file.opts.filename}"`
+          );
+        }
+
+        const resolvedDep = resolvedMod?.dependencies.find(
+          (dep) => dep.module === value
+        );
+
+        if (modules.length && resolvedDep) {
+          let resolvedPath = path.relative(
+            path.dirname(this.file.opts.filename),
+            path.resolve(CWD, resolvedDep.resolved)
+          );
+          resolvedPath = resolvedPath.startsWith('.')
+            ? resolvedPath
+            : `./${resolvedPath}`;
+          node.source.value = resolvedPath;
+        }
       }
     },
   },
-};
+});
+
 export default commonjsToEsm;
