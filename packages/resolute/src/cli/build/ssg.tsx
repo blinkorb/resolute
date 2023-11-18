@@ -169,21 +169,20 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   process.env.NODE_ENV = watch ? 'development' : 'production';
   // Set environment variables
   const PORT = process.env.PORT || '3000';
-  const HOST = process.env.HOST || '0.0.0.0';
-  const URL = (process.env.URL || `http${httpsS}://${HOST}:${PORT}`).replace(
-    MATCHES_TRAILING_SLASH,
-    ''
-  );
+  const HOSTNAME = process.env.HOSTNAME || '0.0.0.0';
+  const URL = (
+    process.env.URL || `http${httpsS}://${HOSTNAME}:${PORT}`
+  ).replace(MATCHES_TRAILING_SLASH, '');
   const API_URL = process.env.API_URL || `${URL}/api/`;
 
   const BUILD_PORT = process.env.BUILD_PORT || '4000';
-  const BUILD_HOST = process.env.BUILD_HOST || 'localhost';
+  const BUILD_HOSTNAME = process.env.BUILD_HOSTNAME || 'localhost';
   const BUILD_URL = (
-    process.env.BUILD_URL || `http://${BUILD_HOST}:${BUILD_PORT}`
+    process.env.BUILD_URL || `http://${BUILD_HOSTNAME}:${BUILD_PORT}`
   ).replace(MATCHES_TRAILING_SLASH, '');
   const BUILD_API_URL = process.env.BUILD_API_URL || `${BUILD_URL}/api/`;
 
-  process.env.HOST = HOST;
+  process.env.HOSTNAME = HOSTNAME;
   process.env.PORT = PORT;
   process.env.URL = URL;
   process.env.API_URL = API_URL;
@@ -594,7 +593,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
       })
   );
 
-  process.env.HOST = BUILD_HOST;
+  process.env.HOSTNAME = BUILD_HOSTNAME;
   process.env.PORT = BUILD_PORT;
   process.env.URL = BUILD_URL;
   process.env.API_URL = BUILD_API_URL;
@@ -607,7 +606,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
       {
         fetch: app.fetch,
         port: parseInt(process.env.PORT!, 10),
-        hostname: BUILD_HOST,
+        hostname: BUILD_HOSTNAME,
       },
       async () => {
         await Promise.all(
@@ -844,7 +843,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
       );
     }
 
-    process.env.HOST = HOST;
+    process.env.HOSTNAME = HOSTNAME;
     process.env.PORT = PORT;
     process.env.URL = URL;
     process.env.API_URL = API_URL;
@@ -861,7 +860,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
       path: '/resolute-dev-server',
     });
 
-    webSocketServerServer.listen(WEB_SOCKET_PORT, HOST);
+    webSocketServerServer.listen(WEB_SOCKET_PORT, HOSTNAME);
 
     webSocketServer.on('connection', (socket) => {
       // eslint-disable-next-line no-console
@@ -922,7 +921,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
         {
           fetch: app.fetch,
           port: parseInt(process.env.PORT, 10),
-          hostname: HOST,
+          hostname: HOSTNAME,
           createServer: http2.createSecureServer,
           serverOptions: {
             key: fs.readFileSync('key.pem', 'utf8'),
@@ -936,7 +935,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
         {
           fetch: app.fetch,
           port: parseInt(process.env.PORT, 10),
-          hostname: HOST,
+          hostname: HOSTNAME,
           createServer: http.createServer,
         },
         logServerRunning

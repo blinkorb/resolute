@@ -108,13 +108,13 @@ The default variables are:
 
 ```shell
 # Used for the dev server
-HOST='0.0.0.0'
+HOSTNAME='0.0.0.0'
 PORT=3000
 URL=http://0.0.0.0:3000
 API_URL=http://0.0.0.0:3000/api
 
 # Used during the build process
-HOST=localhost
+BUILD_HOSTNAME=localhost
 BUILD_PORT=4000
 BUILD_URL=http://localhost:4000
 BUILD_API_URL=http://localhost:4000/api
