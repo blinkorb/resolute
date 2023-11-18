@@ -827,6 +827,11 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
       );
     }
 
+    process.env.HOST = HOST;
+    process.env.PORT = PORT;
+    process.env.URL = URL;
+    process.env.API_URL = API_URL;
+
     const server = serveHttps
       ? spdy.createServer(
           {
@@ -836,11 +841,6 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
           app
         )
       : http.createServer(app);
-
-    process.env.HOST = HOST;
-    process.env.PORT = PORT;
-    process.env.URL = URL;
-    process.env.API_URL = API_URL;
 
     const io = new SocketIoServer(server);
 
