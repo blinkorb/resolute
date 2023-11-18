@@ -866,6 +866,8 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
       // eslint-disable-next-line no-console
       console.log('Dev server connected');
 
+      socket.send("These aren't the sockets you're looking for. 👋");
+
       socket.on('disconnect', () => {
         // eslint-disable-next-line no-console
         console.log('Dev server disconnected');
