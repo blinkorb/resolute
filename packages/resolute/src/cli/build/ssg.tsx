@@ -24,6 +24,7 @@ import { rimrafSync } from 'rimraf';
 import { WebSocketServer } from 'ws';
 
 import {
+  DEV_SERVER_PATHNAME,
   MATCHES_TRAILING_SLASH,
   SCOPED_CLIENT,
   SCOPED_NAME,
@@ -857,7 +858,7 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
 
     const webSocketServer = new WebSocketServer({
       server: webSocketServerServer,
-      path: '/resolute-dev-server',
+      path: DEV_SERVER_PATHNAME,
     });
 
     webSocketServerServer.listen(WEB_SOCKET_PORT, HOSTNAME);
