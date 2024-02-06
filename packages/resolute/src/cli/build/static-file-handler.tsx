@@ -65,6 +65,7 @@ import {
   toStaticPath,
 } from '../utils/paths.js';
 import { extractSourceMap } from '../utils/source-maps.js';
+import type { EnvHandler } from './env-handler.js';
 
 const require = createRequire(import.meta.url);
 
@@ -96,6 +97,7 @@ export class StaticFileHandler {
   private staticPathname: string;
   private resoluteSourcePathname: string;
   private watch: boolean;
+  private envHandler: EnvHandler;
   private clientFiles: string[] = [];
   private clientModules: IModule[] = [];
   private resoluteFiles: string[] = [];
@@ -112,7 +114,8 @@ export class StaticFileHandler {
     serverPathname: string,
     staticPathname: string,
     resoluteSourcePathname: string,
-    watch: boolean | undefined
+    watch: boolean | undefined,
+    envHandler: EnvHandler
   ) {
     this.publicPathname = publicPathname;
     this.sourcePathname = sourcePathname;
@@ -120,6 +123,7 @@ export class StaticFileHandler {
     this.staticPathname = staticPathname;
     this.resoluteSourcePathname = resoluteSourcePathname;
     this.watch = !!watch;
+    this.envHandler = envHandler;
   }
 
   /** Files that will be used on the client (from server, including resolute) and related dependencies */
@@ -909,5 +913,36 @@ export class StaticFileHandler {
       .on('unlink', (pathname) => {
         console.log('delete', pathname);
       });
+  }
+
+  public watchDotenvAndBuildIntoStatic() {
+    const dotenvWatcher = chokidar.watch('.env', {
+      ignoreInitial: true,
+      cwd: CWD,
+    });
+
+    const onChange = async () => {
+      // eslint-disable-next-line no-console
+      console.log('.env changed. Rebuilding...');
+
+      const startTime = Date.now();
+
+      this.envHandler.setupMainEnv();
+      await this.loadResoluteSettingsFromServer();
+      await this.loadClientFilesAndDependenciesFromServer();
+      await this.compileNodeModulesIntoStatic();
+      await this.compileClientFilesFromServerIntoStatic();
+      await this.compileResoluteFilesInStaticInPlace();
+      await this.extractStaticFileSourceMaps();
+      await this.loadComponentRoutesAndLayoutsFromServer();
+
+      // eslint-disable-next-line no-console
+      console.log(`Built in ${((Date.now() - startTime) / 1000).toFixed(2)}s`);
+    };
+
+    dotenvWatcher
+      .on('add', onChange)
+      .on('change', onChange)
+      .on('unlink', onChange);
   }
 }

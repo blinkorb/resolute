@@ -46,7 +46,8 @@ export const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     SERVER_PATHNAME,
     STATIC_PATHNAME,
     RESOLUTE_SRC_PATHNAME,
-    watch
+    watch,
+    envHandler
   );
 
   await staticFileHandler.clearOutDirs();
@@ -182,6 +183,7 @@ export const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     await staticFileHandler.watchMarkdownIntoServer();
     await staticFileHandler.watchPublicIntoServer();
     await staticFileHandler.watchServerFilesIntoStatic();
+    await staticFileHandler.watchDotenvAndBuildIntoStatic();
 
     const logServerRunning = () => {
       // eslint-disable-next-line no-console
