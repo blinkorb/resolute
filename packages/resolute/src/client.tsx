@@ -177,7 +177,7 @@ const renderClient = async (
 };
 
 const loadClient = async (
-  location: Location | URL,
+  location: Location | globalThis.URL,
   resolutePageJson: PageDataJSONClient,
   router: Router
 ) => {
@@ -194,7 +194,10 @@ const loadClient = async (
   };
 };
 
-const loadModule = async (location: Location | URL, router: Router) => {
+const loadModule = async (
+  location: Location | globalThis.URL,
+  router: Router
+) => {
   const resolutePageJson: PageDataJSON | Error = await fetch(
     `${location.protocol}//${location.host}${location.pathname.replace(
       MATCHES_TRAILING_SLASH,
@@ -240,7 +243,7 @@ const loadModule = async (location: Location | URL, router: Router) => {
 };
 
 const loadModuleFromCache = async (
-  location: Location | URL,
+  location: Location | globalThis.URL,
   pathname: string,
   id: string,
   loadTime: number,
@@ -271,7 +274,7 @@ const loadModuleFromCache = async (
 };
 
 preload = (href: string) => {
-  const url = new URL(href, globalThis.location.origin);
+  const url = new globalThis.URL(href, globalThis.location.origin);
   const pathname = url.pathname.replace(MATCHES_TRAILING_SLASH, '/');
 
   if (
@@ -379,7 +382,7 @@ const updatePage = async (
       link.addEventListener(
         'click',
         (event) => {
-          const newLocation = new URL(link.href, location.origin);
+          const newLocation = new globalThis.URL(link.href, location.origin);
 
           if (link.dataset.hard !== 'true' && link.target !== '_blank') {
             event.preventDefault();

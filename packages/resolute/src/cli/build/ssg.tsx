@@ -7,15 +7,13 @@ import path from 'node:path';
 
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { config as dotenvConfig } from 'dotenv';
 import { glob } from 'glob';
 import { Hono } from 'hono';
 import { WebSocketServer } from 'ws';
 
 import {
   DEV_SERVER_PATHNAME,
-  MATCHES_TRAILING_SLASH,
-  WEB_SOCKET_PORT,
+  DEV_SERVER_SOCKET_PORT,
 } from '../../constants.js';
 import { RequestMethod } from '../../index.js';
 import { getModule } from '../../utils/module.js';
@@ -29,37 +27,18 @@ import {
   SRC_PATHNAME,
   STATIC_PATHNAME,
 } from '../constants.js';
+import { EnvHandler } from './env-handler.js';
 import { StaticFileHandler } from './static-file-handler.js';
-
-dotenvConfig();
 
 export const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   // eslint-disable-next-line no-console
   console.log('Building...');
 
-  const httpsS = serveHttps ? 's' : '';
   const startTime = Date.now();
 
-  process.env.NODE_ENV = watch ? 'development' : 'production';
-  // Set environment variables
-  const PORT = process.env.PORT || '3000';
-  const HOSTNAME = process.env.HOSTNAME || '0.0.0.0';
-  const URL = (
-    process.env.URL || `http${httpsS}://${HOSTNAME}:${PORT}`
-  ).replace(MATCHES_TRAILING_SLASH, '');
-  const API_URL = process.env.API_URL || `${URL}/api/`;
+  const envHandler = new EnvHandler(watch, serveHttps);
 
-  const BUILD_PORT = process.env.BUILD_PORT || '4000';
-  const BUILD_HOSTNAME = process.env.BUILD_HOSTNAME || 'localhost';
-  const BUILD_URL = (
-    process.env.BUILD_URL || `http://${BUILD_HOSTNAME}:${BUILD_PORT}`
-  ).replace(MATCHES_TRAILING_SLASH, '');
-  const BUILD_API_URL = process.env.BUILD_API_URL || `${BUILD_URL}/api/`;
-
-  process.env.HOSTNAME = HOSTNAME;
-  process.env.PORT = PORT;
-  process.env.URL = URL;
-  process.env.API_URL = API_URL;
+  envHandler.setupMainEnv();
 
   const staticFileHandler = new StaticFileHandler(
     PUBLIC_PATHNAME,
@@ -135,10 +114,7 @@ export const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
       })
   );
 
-  process.env.HOSTNAME = BUILD_HOSTNAME;
-  process.env.PORT = BUILD_PORT;
-  process.env.URL = BUILD_URL;
-  process.env.API_URL = BUILD_API_URL;
+  envHandler.setupBuildEnv();
 
   // eslint-disable-next-line no-console
   console.log('Starting build server...');
@@ -148,7 +124,7 @@ export const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
       {
         fetch: app.fetch,
         port: parseInt(process.env.PORT!, 10),
-        hostname: BUILD_HOSTNAME,
+        hostname: envHandler.buildHostname,
       },
       async () => {
         await staticFileHandler.generateStaticFiles();
@@ -174,10 +150,7 @@ export const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
       );
     }
 
-    process.env.HOSTNAME = HOSTNAME;
-    process.env.PORT = PORT;
-    process.env.URL = URL;
-    process.env.API_URL = API_URL;
+    envHandler.setupMainEnv();
 
     const webSocketServerServer = serveHttps
       ? https.createServer({
@@ -191,7 +164,7 @@ export const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
       path: DEV_SERVER_PATHNAME,
     });
 
-    webSocketServerServer.listen(WEB_SOCKET_PORT, HOSTNAME);
+    webSocketServerServer.listen(DEV_SERVER_SOCKET_PORT, envHandler.hostname);
 
     webSocketServer.on('connection', (socket) => {
       // eslint-disable-next-line no-console
@@ -212,15 +185,17 @@ export const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
 
     const logServerRunning = () => {
       // eslint-disable-next-line no-console
-      console.log(`Dev server running at ${URL} (port ${PORT})`);
+      console.log(
+        `Dev server running at ${envHandler.url} (port ${envHandler.port})`
+      );
     };
 
     if (serveHttps) {
       serve(
         {
           fetch: app.fetch,
-          port: parseInt(process.env.PORT, 10),
-          hostname: HOSTNAME,
+          port: envHandler.port,
+          hostname: envHandler.hostname,
           createServer: http2.createSecureServer,
           serverOptions: {
             key: fs.readFileSync('key.pem', 'utf8'),
@@ -233,8 +208,8 @@ export const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
       serve(
         {
           fetch: app.fetch,
-          port: parseInt(process.env.PORT, 10),
-          hostname: HOSTNAME,
+          port: envHandler.port,
+          hostname: envHandler.hostname,
           createServer: http.createServer,
         },
         logServerRunning

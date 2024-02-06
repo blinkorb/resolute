@@ -5,7 +5,7 @@ export const getLocationInfo = (
   href: string,
   origin?: string
 ): LocationInfo => {
-  const url = new URL(href, origin);
+  const url = new globalThis.URL(href, origin);
 
   return {
     hash: url.hash,
@@ -32,7 +32,7 @@ export const getRouter = (
     state?: AnyObject,
     options?: NavigateOptions
   ) => {
-    const newLocation = new URL(pathname, origin);
+    const newLocation = new globalThis.URL(pathname, origin);
     if (!options?.hard && newLocation.origin === origin) {
       if (options?.replace) {
         history.replaceState(state, '', pathname);

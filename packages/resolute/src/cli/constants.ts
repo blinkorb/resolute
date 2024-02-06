@@ -6,7 +6,7 @@ import { readPackageJsonVersion } from './utils/deps.js';
 
 export const CWD = process.cwd();
 
-const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
+const __dirname = url.fileURLToPath(new globalThis.URL('.', import.meta.url));
 
 export const RESOLUTE_SRC_PATHNAME = path.resolve(__dirname, '../');
 
