@@ -123,7 +123,7 @@ export const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     const server = serve(
       {
         fetch: app.fetch,
-        port: parseInt(process.env.PORT!, 10),
+        port: envHandler.buildPort,
         hostname: envHandler.buildHostname,
       },
       async () => {
