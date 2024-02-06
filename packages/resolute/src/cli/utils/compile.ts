@@ -5,7 +5,7 @@ import { transformSync } from '@babel/core';
 import { IModule } from 'dependency-cruiser';
 import ts from 'typescript';
 
-import commonjsToEsm from '../babel/commonjs-to-esm.js';
+import { commonjsToEsm } from '../babel/commonjs-to-esm.js';
 import { CWD } from '../constants.js';
 
 const require = createRequire(import.meta.url);

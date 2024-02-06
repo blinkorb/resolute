@@ -11,7 +11,7 @@ import {
 } from 'jargs';
 
 import { DESCRIPTION, NAME } from '../constants.js';
-import buildStatic from './build/ssg.js';
+import { buildStatic } from './build/ssg.js';
 
 const RENDERER = KWArg('renderer', {
   alias: 'r',

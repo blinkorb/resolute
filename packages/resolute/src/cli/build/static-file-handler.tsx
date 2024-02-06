@@ -16,7 +16,7 @@ import ReactMarkdown from 'react-markdown';
 import { rimrafSync } from 'rimraf';
 
 import { SCOPED_CLIENT, SCOPED_NAME } from '../../constants.js';
-import Page from '../../page.js';
+import { Page } from '../../page.js';
 import type {
   LayoutJSON,
   LocationInfo,

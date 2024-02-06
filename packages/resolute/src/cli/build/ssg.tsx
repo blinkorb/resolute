@@ -33,7 +33,7 @@ import { StaticFileHandler } from './static-file-handler.js';
 
 dotenvConfig();
 
-const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
+export const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   // eslint-disable-next-line no-console
   console.log('Building...');
 
@@ -242,5 +242,3 @@ const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     }
   }
 };
-
-export default buildStatic;

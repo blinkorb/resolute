@@ -6,7 +6,7 @@ import { IModule } from 'dependency-cruiser';
 
 import { CWD, MATCHES_LOCAL } from '../constants.js';
 
-const commonjsToEsm = (modules: IModule[]): PluginObj => ({
+export const commonjsToEsm = (modules: IModule[]): PluginObj => ({
   visitor: {
     Directive(p) {
       const { node } = p;
@@ -353,5 +353,3 @@ const commonjsToEsm = (modules: IModule[]): PluginObj => ({
     },
   },
 });
-
-export default commonjsToEsm;

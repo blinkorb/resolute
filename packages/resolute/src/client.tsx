@@ -9,7 +9,7 @@ import {
   DEFAULT_VIEW_TRANSITIONS,
   MATCHES_TRAILING_SLASH,
 } from './constants.js';
-import Page from './page.js';
+import { Page } from './page.js';
 import {
   PageDataJSON,
   PageDataJSONClient,
@@ -474,7 +474,7 @@ globalThis.addEventListener('popstate', () => {
 loadPage(globalThis.location);
 
 if (process.env.NODE_ENV === 'development') {
-  const { default: connectToDevServer } = await import('./io-client.js');
+  const { connectToDevServer } = await import('./io-client.js');
 
   connectToDevServer();
 }
