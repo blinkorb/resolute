@@ -834,9 +834,9 @@ export class StaticFileHandler {
   }
 
   public watchPublicIntoServer() {
-    const publicWatcher = chokidar.watch(`**/*${GLOB_MARKDOWN_EXTENSION}`, {
+    const publicWatcher = chokidar.watch('**/*', {
       ignoreInitial: true,
-      cwd: this.sourcePathname,
+      cwd: this.publicPathname,
     });
 
     publicWatcher
@@ -844,7 +844,7 @@ export class StaticFileHandler {
         try {
           fs.cpSync(
             path.resolve(this.publicPathname, pathname),
-            path.resolve(this.serverPathname, pathname)
+            path.resolve(this.staticPathname, pathname)
           );
         } catch (error) {
           // eslint-disable-next-line no-console
@@ -855,7 +855,7 @@ export class StaticFileHandler {
         try {
           fs.cpSync(
             path.resolve(this.publicPathname, pathname),
-            path.resolve(this.serverPathname, pathname)
+            path.resolve(this.staticPathname, pathname)
           );
         } catch (error) {
           // eslint-disable-next-line no-console
@@ -864,7 +864,7 @@ export class StaticFileHandler {
       })
       .on('unlink', (pathname) => {
         try {
-          fs.unlinkSync(path.resolve(this.serverPathname, pathname));
+          fs.unlinkSync(path.resolve(this.staticPathname, pathname));
         } catch (error) {
           // eslint-disable-next-line no-console
           console.error(error);
