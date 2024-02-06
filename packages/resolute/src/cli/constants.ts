@@ -23,7 +23,8 @@ export const STATIC_DIR = 'static/';
 export const STATIC_PATHNAME = path.resolve(CWD, STATIC_DIR);
 export const SERVER_DIR = 'server/';
 export const SERVER_PATHNAME = path.resolve(CWD, SERVER_DIR);
-export const PUBLIC_FILES_GLOB = 'public/**/*';
+export const PUBLIC_DIR = 'public/';
+export const PUBLIC_PATHNAME = path.resolve(CWD, PUBLIC_DIR);
 
 export const MATCHES_LOCAL = /^[./]/;
 export const MATCHES_NODE_MODULE = /(^|\b)node_modules\//;
@@ -61,3 +62,7 @@ export const MATCHES_MARKDOWN_EXTENSION = new RegExp(
 export const GLOB_JS_EXTENSION = `.{${JS_EXTENSIONS.join(',')}}`;
 export const GLOB_SRC_EXTENSION = `.{${SRC_EXTENSIONS.join(',')}}`;
 export const GLOB_MARKDOWN_EXTENSION = `.{${MARKDOWN_EXTENSIONS.join(',')}}`;
+export const GLOB_JS_AND_MARKDOWN_EXTENSION = `.{${[
+  ...JS_EXTENSIONS,
+  ...MARKDOWN_EXTENSIONS,
+].join(',')}}`;
