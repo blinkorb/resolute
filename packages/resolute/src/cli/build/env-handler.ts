@@ -5,6 +5,7 @@ import { MATCHES_TRAILING_SLASH } from '../../constants.js';
 export class EnvHandler {
   private watch: boolean;
   private serveHttps: boolean;
+  private dotenvParsed: Record<string, string> | undefined;
   public port!: number;
   public hostname!: string;
   public url!: string;
@@ -52,7 +53,13 @@ export class EnvHandler {
       }
     });
 
-    dotenvConfig();
+    Object.keys(this.dotenvParsed || {}).forEach((key) => {
+      delete process.env[key];
+    });
+
+    const { parsed } = dotenvConfig();
+
+    this.dotenvParsed = parsed;
 
     const httpsS = this.serveHttps ? 's' : '';
 
