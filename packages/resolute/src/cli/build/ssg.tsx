@@ -54,7 +54,6 @@ export const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
   await staticFileHandler.copyPublicFilesIntoStatic();
   await staticFileHandler.copyMarkdownFilesIntoServer();
   await staticFileHandler.compileTypeScriptSourceFilesIntoServer();
-  await staticFileHandler.loadResoluteSettingsFromServer();
   await staticFileHandler.loadClientFilesAndDependenciesFromServer();
   await staticFileHandler.compileNodeModulesIntoStatic();
   await staticFileHandler.compileClientFilesFromServerIntoStatic();
