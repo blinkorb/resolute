@@ -40,6 +40,7 @@ import { createDebounced, createDebouncedByKey } from '../utils/debounce.js';
 import { getAllDependencies, getVersionMap } from '../utils/deps.js';
 import {
   getDepth,
+  getOutPathnames,
   isPartialPathMatch,
   isPartialRouteMatch,
   pathnameToRoute,
@@ -710,8 +711,8 @@ export class StaticFileHandler {
         } else {
           const startTime = Date.now();
 
-          await this.loadClientFilesAndDependenciesFromServer();
           await this.loadComponentRoutesAndLayoutsFromServer();
+          await this.loadClientFilesAndDependenciesFromServer();
 
           console.log(
             `Loaded dependencies in ${((Date.now() - startTime) / 1000).toFixed(
@@ -723,11 +724,39 @@ export class StaticFileHandler {
       .on('unlink', async (pathname) => {
         console.log('delete', pathname);
 
+        try {
+          fs.unlinkSync(path.resolve(this.staticPathname, pathname));
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error(error);
+        }
+
         if (pathname === 'resolute.settings.js') {
           // eslint-disable-next-line no-console
           console.log('resolute.settings changed. Rebuilding static files...');
-
           await this.rebuildAllStaticFilesDebounced();
+        } else if (MATCHES_MARKDOWN_EXTENSION.test(pathname)) {
+          const absolutePathname = path.resolve(this.serverPathname, pathname);
+          const route = pathnameToRoute(absolutePathname, this.serverPathname);
+
+          const { outFileHTML, outFileJSON } = getOutPathnames(
+            route,
+            this.staticPathname
+          );
+
+          try {
+            fs.unlinkSync(outFileHTML);
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error(error);
+          }
+
+          try {
+            fs.unlinkSync(outFileJSON);
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error(error);
+          }
         }
       });
   }

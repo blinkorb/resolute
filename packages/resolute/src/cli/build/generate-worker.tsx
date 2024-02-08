@@ -31,7 +31,11 @@ import { getPageMeta } from '../../utils/meta.js';
 import { getModule } from '../../utils/module.js';
 import { CWD, MATCHES_LOCAL, RESOLUTE_VERSION } from '../constants.js';
 import { getAllDependencies } from '../utils/deps.js';
-import { fromServerPathToRelativeTSX, toStaticPath } from '../utils/paths.js';
+import {
+  fromServerPathToRelativeTSX,
+  getOutPathnames,
+  toStaticPath,
+} from '../utils/paths.js';
 import type { WorkerData } from './types.js';
 
 const require = createRequire(import.meta.url);
@@ -293,13 +297,10 @@ const { head, body, html } = await renderToHTML(
   clientPathname
 );
 
-const outFileHTML = path.resolve(
-  staticPathname,
-  route.replace(/^\/?/, ''),
-  'index.html'
+const { outDir, outFileHTML, outFileJSON } = getOutPathnames(
+  route,
+  staticPathname
 );
-const outDir = path.dirname(outFileHTML);
-const outFileJSON = path.resolve(outDir, 'resolute.json');
 
 const json = (
   clientPathname
