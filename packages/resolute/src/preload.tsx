@@ -4,7 +4,7 @@ import { PreloadFunction } from './types.js';
 
 export const PreloadContext = createContext<PreloadFunction | null>(null);
 
-const PreloadProvider = ({
+export const PreloadProvider = ({
   preload,
   children,
 }: {
@@ -14,4 +14,4 @@ const PreloadProvider = ({
   <PreloadContext.Provider value={preload}>{children}</PreloadContext.Provider>
 );
 
-export default PreloadProvider;
+PreloadProvider.displayName = 'ResolutePreloadProvider';

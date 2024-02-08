@@ -4,7 +4,7 @@ import { ResoluteSettings } from './types.js';
 
 export const SettingsContext = createContext<ResoluteSettings | null>(null);
 
-const SettingsProvider = ({
+export const SettingsProvider = ({
   settings,
   children,
 }: {
@@ -16,4 +16,4 @@ const SettingsProvider = ({
   </SettingsContext.Provider>
 );
 
-export default SettingsProvider;
+SettingsProvider.displayName = 'ResoluteSettingsProvider';

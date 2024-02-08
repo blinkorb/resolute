@@ -5,6 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "dev": "npm run dev-ssg",
     "build-ssg": "(cd ../resolute ; npm run build) && resolute build",
     "dev-ssg": "(cd ../resolute ; npm run build) && resolute dev",
     "typecheck": "tsc --noEmit",

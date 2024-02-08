@@ -1,5 +1,7 @@
 import { RequestMethod } from './types.js';
 
+export const DEV_SERVER_SOCKET_PORT = 3333;
+
 export const SCOPE = '@blinkorb';
 export const NAME = 'resolute';
 export const SCOPED_NAME = `${SCOPE}/${NAME}`;
@@ -32,3 +34,5 @@ export const DEFAULT_TRANSITION_INITIAL_RENDER = false;
 export const DEFAULT_PRELOAD_CACHE_TIMEOUT = 60 * 1000;
 export const DEFAULT_PRELOAD_ON_HOVER = true;
 export const DEFAULT_PRELOAD_ON_FOCUS = true;
+
+export const DEV_SERVER_PATHNAME = '/resolute-dev-server';

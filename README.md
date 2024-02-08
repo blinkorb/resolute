@@ -88,7 +88,7 @@ npm run dev
 
 The dev server is not yet complete, so you will need to manually rebuild the project after each change.
 
-The dev server can also by run with SSL by providing `resolute dev --https`. If you do so you should git ignore the `*.pem` files (certificates) this creates.
+The dev server can also by run over HTTP2 with SSL by providing `--ssl`, `--https` or `--http2`. If you do so you should git ignore the `*.pem` files (certificates) this creates.
 
 Open another terminal to rebuild your project with:
 
@@ -108,14 +108,16 @@ The default variables are:
 
 ```shell
 # Used for the dev server
+HOSTNAME='0.0.0.0'
 PORT=3000
 URL=http://0.0.0.0:3000
 API_URL=http://0.0.0.0:3000/api
 
 # Used during the build process
+BUILD_HOSTNAME=localhost
 BUILD_PORT=4000
-BUILD_URL=http://0.0.0.0:4000
-BUILD_API_URL=http://0.0.0.0:4000/api
+BUILD_URL=http://localhost:4000
+BUILD_API_URL=http://localhost:4000/api
 ```
 
 This file should be git ignored.
@@ -145,6 +147,26 @@ You can use whatever options you like within here, but it _must_ include:
     "jsx": "react"
   },
   "include": ["src"]
+}
+```
+
+You can set the `include` option in here to be the `src` directory, and any other directories that include TypeScript files, such as tests e.g.
+
+```json
+{
+  "include": ["src", "tests"]
+}
+```
+
+You should also create a `tsconfig.resolute.json` which extends your base `tsconfig.json`.
+
+We use a separate `tsconfig.resolute.json` so that you can `include` only files that will make up your site/app, and `exclude` other files such as tests e.g.
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "include": ["src"],
+  "exclude": ["src/**/*.test.*"]
 }
 ```
 

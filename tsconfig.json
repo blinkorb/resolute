@@ -17,7 +17,7 @@
     "module": "NodeNext",
     "jsx": "react",
     "paths": {
-      "@blinkorb/resolute": ["./packages/resolute/src/index.ts"]
+      "@blinkorb/resolute": ["./node_modules/@blinkorb/resolute/src/index.ts"]
     }
   },
   "include": ["packages/**/src/**/*", "jest.config.ts"]

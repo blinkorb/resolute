@@ -4,7 +4,7 @@ import { LocationInfo, Router, RouterContextState } from './types.js';
 
 export const RouteContext = createContext<RouterContextState | null>(null);
 
-const RouterProvider = ({
+export const RouterProvider = ({
   location,
   router,
   children,
@@ -28,4 +28,4 @@ const RouterProvider = ({
   );
 };
 
-export default RouterProvider;
+RouterProvider.displayName = 'ResoluteRouterProvider';

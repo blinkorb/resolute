@@ -11,7 +11,7 @@ import {
 } from 'jargs';
 
 import { DESCRIPTION, NAME } from '../constants.js';
-import buildStatic from './build/ssg.js';
+import { buildStatic } from './build/ssg.js';
 
 const RENDERER = KWArg('renderer', {
   alias: 'r',
@@ -85,7 +85,10 @@ collect(
                 typeof tree.kwargs.renderer === 'undefined' ||
                 tree.kwargs.renderer === 'ssg'
               ) {
-                return buildStatic(true, tree.flags.https);
+                return buildStatic(
+                  true,
+                  tree.flags.ssl || tree.flags.https || tree.flags.http2
+                );
               }
 
               if (tree.kwargs.renderer === 'ssr') {
@@ -108,8 +111,14 @@ collect(
             },
           },
           RENDERER,
+          Flag('ssl', {
+            description: 'Serve over HTTP2 with SSL',
+          }),
           Flag('https', {
-            description: 'Serve over HTTPS',
+            description: 'Serve over HTTP2 with SSL',
+          }),
+          Flag('http2', {
+            description: 'Serve over HTTP2 with SSL',
           })
         )
       )

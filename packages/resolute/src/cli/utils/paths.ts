@@ -104,3 +104,15 @@ export const toStaticPath = (
 
   throw new Error(`Cannot convert pathname to static path: ${pathname}`);
 };
+
+export const getOutPathnames = (route: string, staticPathname: string) => {
+  const outFileHTML = path.resolve(
+    staticPathname,
+    route.replace(/^\/?/, ''),
+    'index.html'
+  );
+  const outDir = path.dirname(outFileHTML);
+  const outFileJSON = path.resolve(outDir, 'resolute.json');
+
+  return { outDir, outFileHTML, outFileJSON };
+};

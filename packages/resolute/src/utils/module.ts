@@ -1,6 +1,6 @@
 import { AssertUnknownObject } from '../types.js';
 
-export const assertModule: AssertUnknownObject = (module, pathname) => {
+const assertModule: AssertUnknownObject = (module, pathname) => {
   if (!module) {
     throw new Error(
       `Module at "${pathname}" was not what we expected: ${module}`

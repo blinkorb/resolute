@@ -9,7 +9,7 @@ import {
   DEFAULT_VIEW_TRANSITIONS,
   MATCHES_TRAILING_SLASH,
 } from './constants.js';
-import Page from './page.js';
+import { Page } from './page.js';
 import {
   PageDataJSON,
   PageDataJSONClient,
@@ -68,6 +68,9 @@ const history = {
     globalThis.dispatchEvent(new Event('popstate'));
   },
 };
+
+const getRootElement = () =>
+  globalThis.document.getElementById('resolute-root')!;
 
 interface ClientRenderer {
   root: Root;
@@ -174,7 +177,7 @@ const renderClient = async (
 };
 
 const loadClient = async (
-  location: Location | URL,
+  location: Location | globalThis.URL,
   resolutePageJson: PageDataJSONClient,
   router: Router
 ) => {
@@ -191,7 +194,10 @@ const loadClient = async (
   };
 };
 
-const loadModule = async (location: Location | URL, router: Router) => {
+const loadModule = async (
+  location: Location | globalThis.URL,
+  router: Router
+) => {
   const resolutePageJson: PageDataJSON | Error = await fetch(
     `${location.protocol}//${location.host}${location.pathname.replace(
       MATCHES_TRAILING_SLASH,
@@ -237,7 +243,7 @@ const loadModule = async (location: Location | URL, router: Router) => {
 };
 
 const loadModuleFromCache = async (
-  location: Location | URL,
+  location: Location | globalThis.URL,
   pathname: string,
   id: string,
   loadTime: number,
@@ -268,7 +274,7 @@ const loadModuleFromCache = async (
 };
 
 preload = (href: string) => {
-  const url = new URL(href, globalThis.location.origin);
+  const url = new globalThis.URL(href, globalThis.location.origin);
   const pathname = url.pathname.replace(MATCHES_TRAILING_SLASH, '/');
 
   if (
@@ -299,7 +305,7 @@ const updatePage = async (
         prevPage.root.unmount();
       }
 
-      globalThis.document.body.innerHTML = `<p style="color: red;">${cache.message}</p>`;
+      getRootElement().innerHTML = `<p style="color: red;">${cache.message}</p>`;
     } else {
       globalThis.location.reload();
     }
@@ -326,7 +332,7 @@ const updatePage = async (
       if (prevPage?.root) {
         prevPage.root.render(page);
       } else if (prevPage?.static || cache.pageModule.hydrate === false) {
-        const root = createRoot(globalThis.document.body);
+        const root = createRoot(getRootElement());
         root.render(page);
         prevPage = {
           root,
@@ -346,7 +352,7 @@ const updatePage = async (
         });
       } else {
         prevPage = {
-          root: hydrateRoot(globalThis.document.body, page),
+          root: hydrateRoot(getRootElement(), page),
         };
       }
     }
@@ -357,7 +363,7 @@ const updatePage = async (
 
     if (prevPage) {
       globalThis.document.head.innerHTML = cache.resolutePageJson.static.head;
-      globalThis.document.body.innerHTML = cache.resolutePageJson.static.body;
+      getRootElement().innerHTML = cache.resolutePageJson.static.body;
 
       reFocusActiveElement(
         globalThis.document.body,
@@ -376,7 +382,7 @@ const updatePage = async (
       link.addEventListener(
         'click',
         (event) => {
-          const newLocation = new URL(link.href, location.origin);
+          const newLocation = new globalThis.URL(link.href, location.origin);
 
           if (link.dataset.hard !== 'true' && link.target !== '_blank') {
             event.preventDefault();
@@ -469,3 +475,9 @@ globalThis.addEventListener('popstate', () => {
 });
 
 loadPage(globalThis.location);
+
+if (process.env.NODE_ENV === 'development') {
+  const { connectToDevServer } = await import('./io-client.js');
+
+  connectToDevServer();
+}

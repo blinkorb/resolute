@@ -1,22 +1,36 @@
 import fs from 'node:fs';
 
 import { cruise, IDependency } from 'dependency-cruiser';
+import enhancedResolve from 'enhanced-resolve';
 
 import { MATCHES_LOCAL, MATCHES_MODULE_SCOPE_AND_NAME } from '../constants.js';
 
+const DEFAULT_CACHE_DURATION = 4000;
+
 export const getAllDependencies = async (pathnames: string[]) => {
-  const dependencies = await cruise(pathnames, {
-    baseDir: process.cwd(),
-    builtInModules: {
-      override: [],
-      add: [],
+  const dependencies = await cruise(
+    pathnames,
+    {
+      baseDir: process.cwd(),
+      builtInModules: {
+        override: [],
+        add: [],
+      },
+      enhancedResolveOptions: {
+        mainFields: ['module', 'main'],
+        exportsFields: ['exports'],
+        conditionNames: ['import', 'require', 'default'],
+      },
     },
-    enhancedResolveOptions: {
-      mainFields: ['module', 'main'],
-      exportsFields: ['exports'],
-      conditionNames: ['import', 'require', 'default'],
-    },
-  });
+    {
+      fileSystem: new enhancedResolve.CachedInputFileSystem(
+        fs,
+        DEFAULT_CACHE_DURATION
+      ),
+      aliasFields: ['browser'],
+      resolveDeprecations: true,
+    }
+  );
 
   const modulesWithoutResoluteSettings = dependencies.output.modules.map(
     (mod) => ({

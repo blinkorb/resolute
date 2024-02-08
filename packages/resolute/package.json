@@ -22,14 +22,14 @@
   "types": "./build/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "rm -rf build && tsc --noEmit false --declaration --inlineSourceMap --inlineSources && chmod +x ./build/cli/index.js && cp ../../README.md ./README.md",
+    "build": "rm -rf build && tsc --noEmit false --declaration --inlineSourceMap --inlineSources && chmod +x ./build/cli/index.js",
     "typecheck": "tsc --noEmit",
     "format-check": "prettier --check '**/*'",
     "format": "prettier --write '**/*'",
     "lint": "eslint './src/**/*.{ts,tsx,js,jsx}'",
     "tests": "jest --coverage --runInBand --passWithNoTests",
     "test": "npm run typecheck && npm run format-check && npm run lint && npm run tests",
-    "prepublishOnly": "npm test && npm run build"
+    "prepublishOnly": "npm test && npm run build && cp ../../README.md ./README.md"
   },
   "repository": {
     "type": "git",
@@ -55,19 +55,22 @@
   "dependencies": {
     "@babel/core": "^7.22.15",
     "@babel/types": "^7.22.19",
+    "@hono/node-server": "^1.2.3",
     "@types/babel__core": "^7.20.1",
-    "@types/express": "^4.17.17",
+    "@types/node": "^20.11.16",
     "@types/react": "^18.2.18",
     "@types/react-dom": "^18.2.7",
     "@types/react-helmet": "^6.1.7",
+    "@types/ws": "^8.5.9",
     "babel-plugin-minify-dead-code-elimination": "^0.5.2",
     "babel-plugin-transform-commonjs": "^1.1.6",
     "babel-plugin-transform-inline-environment-variables": "^0.4.4",
+    "chokidar": "^3.5.3",
     "cpy": "^10.1.0",
     "dependency-cruiser": "^15.2.0",
     "dotenv": "^16.3.1",
-    "express": "^4.18.2",
     "glob": "^10.3.3",
+    "hono": "^3.10.1",
     "jargs": "^1.0.0-alpha.1",
     "markdown-yaml-metadata-parser": "^3.0.0",
     "mkdirp": "^3.0.1",
@@ -77,7 +80,8 @@
     "react-helmet": "^6.1.0",
     "react-jss": "^10.10.0",
     "react-markdown": "^9.0.0",
-    "rimraf": "^5.0.1"
+    "rimraf": "^5.0.1",
+    "ws": "^8.14.2"
   },
   "peerDependencies": {
     "@types/react": "^18.2.18",

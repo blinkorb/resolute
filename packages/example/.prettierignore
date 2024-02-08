@@ -7,11 +7,13 @@
 /scripts/*
 **/*.txt
 **/*.snap
+*.toml
 *.png
 *.svg
 *.jpg
 *.jpeg
 *.gif
+*.pem
 
 .DS_Store
 .eslintignore
@@ -21,4 +23,5 @@
 .npmignore
 .nvmrc
 .browserslistrc
+.env
 LICENSE.txt

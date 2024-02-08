@@ -2,9 +2,9 @@ import React, { ReactNode, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 
 import { useIsClientRender } from './hooks.js';
-import PreloadProvider from './preload.js';
-import RouterProvider from './router.js';
-import SettingsProvider from './settings.js';
+import { PreloadProvider } from './preload.js';
+import { RouterProvider } from './router.js';
+import { SettingsProvider } from './settings.js';
 import {
   LocationInfo,
   PageMeta,
@@ -24,7 +24,7 @@ export interface PageProps {
   children?: ReactNode | readonly ReactNode[];
 }
 
-const Page = ({
+export const Page = ({
   location,
   router,
   meta,
@@ -69,4 +69,4 @@ const Page = ({
   );
 };
 
-export default Page;
+Page.displayName = 'ResolutePage';
