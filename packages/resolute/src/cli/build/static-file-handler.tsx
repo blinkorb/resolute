@@ -670,6 +670,20 @@ export class StaticFileHandler {
           console.log('resolute.settings changed. Rebuilding static files...');
 
           await this.rebuildAllStaticFilesDebounced();
+        } else if (MATCHES_MARKDOWN_EXTENSION.test(pathname)) {
+          // eslint-disable-next-line no-console
+          console.log(`${pathname} changed`);
+
+          await this.loadComponentRoutesAndLayoutsFromServer();
+
+          const absolutePathname = path.resolve(this.serverPathname, pathname);
+          const route = pathnameToRoute(absolutePathname, this.serverPathname);
+
+          const routeInfo = this.routeMapping[route];
+
+          if (routeInfo) {
+            await this.generateFilesForRouteDebounced(route, routeInfo);
+          }
         }
 
         /*
