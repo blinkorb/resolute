@@ -652,6 +652,20 @@ export class StaticFileHandler {
     this.watchTypeScriptSourceFilesIntoServer();
   }
 
+  public getRoutesThatRelyOn(pathname: string) {
+    const absolutePathname = path.resolve(this.serverPathname, pathname);
+
+    return Object.entries(this.routeMapping).filter(([, info]) =>
+      [
+        info.markdown,
+        info.client,
+        info.page,
+        info.static,
+        ...info.layouts,
+      ].includes(absolutePathname)
+    );
+  }
+
   public watchServerFilesIntoStatic() {
     const serverWatcher = chokidar.watch(
       `**/*${GLOB_JS_AND_MARKDOWN_EXTENSION}`,
@@ -676,16 +690,12 @@ export class StaticFileHandler {
 
           await this.loadComponentRoutesAndLayoutsFromServer();
 
-          const absolutePathname = path.resolve(this.serverPathname, pathname);
-          const route = pathnameToRoute(absolutePathname, this.serverPathname);
-
-          const routeInfo = this.routeMapping[route];
-
-          if (routeInfo) {
-            await this.generateFilesForRouteDebounced(route, routeInfo);
-          }
+          await Promise.all(
+            this.getRoutesThatRelyOn(pathname).map(([route, info]) =>
+              this.generateFilesForRouteDebounced(route, info)
+            )
+          );
         }
-
         /*
         if markdown rebuild page and serve new static
         if javascript
@@ -714,14 +724,11 @@ export class StaticFileHandler {
 
           await this.loadComponentRoutesAndLayoutsFromServer();
 
-          const absolutePathname = path.resolve(this.serverPathname, pathname);
-          const route = pathnameToRoute(absolutePathname, this.serverPathname);
-
-          const routeInfo = this.routeMapping[route];
-
-          if (routeInfo) {
-            await this.generateFilesForRouteDebounced(route, routeInfo);
-          }
+          await Promise.all(
+            this.getRoutesThatRelyOn(pathname).map(([route, info]) =>
+              this.generateFilesForRouteDebounced(route, info)
+            )
+          );
         } else {
           const startTime = Date.now();
 
