@@ -9,6 +9,10 @@ import { IDependency, IModule } from 'dependency-cruiser';
 import { glob } from 'glob';
 import { mkdirpSync } from 'mkdirp';
 import { rimrafSync } from 'rimraf';
+import type {
+  EmitAndSemanticDiagnosticsBuilderProgram,
+  WatchOfConfigFile,
+} from 'typescript';
 
 import { SCOPED_NAME } from '../../constants.js';
 import {
@@ -32,6 +36,7 @@ import {
   compileTypeScript,
   watchTypeScript,
 } from '../utils/compile.js';
+import { createDebounced } from '../utils/debounce.js';
 import { getAllDependencies, getVersionMap } from '../utils/deps.js';
 import {
   getDepth,
@@ -68,6 +73,9 @@ export class StaticFileHandler {
   private nodeModuleDependencies: IDependency[] = [];
   private nodeModuleVersionMap: Record<string, string> = {};
   private routeMapping: RouteMapping = {};
+  private typeScriptProgram:
+    | WatchOfConfigFile<EmitAndSemanticDiagnosticsBuilderProgram>
+    | undefined;
 
   public constructor(
     publicPathname: string,
@@ -185,7 +193,12 @@ export class StaticFileHandler {
       path.resolve(this.sourcePathname, `**/*${GLOB_SRC_EXTENSION}`)
     );
 
-    compileTypeScript(sourceFiles, this.sourcePathname, this.serverPathname);
+    compileTypeScript(
+      sourceFiles,
+      this.sourcePathname,
+      this.serverPathname,
+      this.watch
+    );
   }
 
   public async compileNodeModulesIntoStatic() {
@@ -511,6 +524,22 @@ export class StaticFileHandler {
     );
   }
 
+  public rebuildAllStaticFilesDebounced = createDebounced(async () => {
+    const startTime = Date.now();
+
+    this.envHandler.setupMainEnv();
+    await this.loadClientFilesAndDependenciesFromServer();
+    await this.compileNodeModulesIntoStatic();
+    await this.compileClientFilesFromServerIntoStatic();
+    await this.compileResoluteFilesInStaticInPlace();
+    await this.extractStaticFileSourceMaps();
+    await this.loadComponentRoutesAndLayoutsFromServer();
+    await this.generateStaticFiles();
+
+    // eslint-disable-next-line no-console
+    console.log(`Built in ${((Date.now() - startTime) / 1000).toFixed(2)}s`);
+  }, 100);
+
   public watchMarkdownIntoServer() {
     const markdownWatcher = chokidar.watch(`**/*${GLOB_MARKDOWN_EXTENSION}`, {
       ignoreInitial: true,
@@ -590,7 +619,15 @@ export class StaticFileHandler {
   }
 
   public watchTypeScriptSourceFilesIntoServer() {
-    watchTypeScript(this.sourcePathname, this.serverPathname);
+    this.typeScriptProgram = watchTypeScript(
+      this.sourcePathname,
+      this.serverPathname
+    );
+  }
+
+  public restartWatchTypeScriptSourceFilesIntoServer() {
+    this.typeScriptProgram?.close();
+    this.watchTypeScriptSourceFilesIntoServer();
   }
 
   public watchServerFilesIntoStatic() {
@@ -603,8 +640,15 @@ export class StaticFileHandler {
     );
 
     serverWatcher
-      .on('add', (pathname) => {
+      .on('add', async (pathname) => {
         console.log('add', pathname);
+
+        if (pathname === 'resolute.settings.js') {
+          // eslint-disable-next-line no-console
+          console.log('resolute.settings changed. Rebuilding static files...');
+
+          await this.rebuildAllStaticFilesDebounced();
+        }
 
         /*
         if markdown rebuild page and serve new static
@@ -620,15 +664,29 @@ export class StaticFileHandler {
           if settings depend on this file rebuild all pages
         */
       })
-      .on('change', (pathname) => {
+      .on('change', async (pathname) => {
         console.log('change', pathname);
+
+        if (pathname === 'resolute.settings.js') {
+          // eslint-disable-next-line no-console
+          console.log('resolute.settings changed. Rebuilding static files...');
+
+          await this.rebuildAllStaticFilesDebounced();
+        }
       })
-      .on('unlink', (pathname) => {
+      .on('unlink', async (pathname) => {
         console.log('delete', pathname);
+
+        if (pathname === 'resolute.settings.js') {
+          // eslint-disable-next-line no-console
+          console.log('resolute.settings changed. Rebuilding static files...');
+
+          await this.rebuildAllStaticFilesDebounced();
+        }
       });
   }
 
-  public watchDotenvAndBuildIntoStatic() {
+  public watchDotenvAndBuildAllIntoStatic() {
     const dotenvWatcher = chokidar.watch('.env', {
       ignoreInitial: true,
       cwd: CWD,
@@ -636,21 +694,31 @@ export class StaticFileHandler {
 
     const onChange = async () => {
       // eslint-disable-next-line no-console
-      console.log('.env changed. Rebuilding...');
+      console.log('.env changed. Rebuilding static files...');
 
-      const startTime = Date.now();
+      await this.rebuildAllStaticFilesDebounced();
+    };
 
-      this.envHandler.setupMainEnv();
-      await this.loadClientFilesAndDependenciesFromServer();
-      await this.compileNodeModulesIntoStatic();
-      await this.compileClientFilesFromServerIntoStatic();
-      await this.compileResoluteFilesInStaticInPlace();
-      await this.extractStaticFileSourceMaps();
-      await this.loadComponentRoutesAndLayoutsFromServer();
-      await this.generateStaticFiles();
+    dotenvWatcher
+      .on('add', onChange)
+      .on('change', onChange)
+      .on('unlink', onChange);
+  }
 
+  public watchTsconfigCompileTypeScriptIntoServer() {
+    const dotenvWatcher = chokidar.watch('tsconfig.resolute.json', {
+      ignoreInitial: true,
+      cwd: CWD,
+    });
+
+    const onChange = async () => {
       // eslint-disable-next-line no-console
-      console.log(`Built in ${((Date.now() - startTime) / 1000).toFixed(2)}s`);
+      console.log(
+        'tsconfig.resolute.json changed. Rebuilding TypeScript files...'
+      );
+
+      await this.restartWatchTypeScriptSourceFilesIntoServer();
+      await this.compileTypeScriptSourceFilesIntoServer();
     };
 
     dotenvWatcher

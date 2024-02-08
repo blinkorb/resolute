@@ -182,7 +182,8 @@ export const buildStatic = async (watch?: boolean, serveHttps?: boolean) => {
     await staticFileHandler.watchMarkdownIntoServer();
     await staticFileHandler.watchPublicIntoServer();
     await staticFileHandler.watchServerFilesIntoStatic();
-    await staticFileHandler.watchDotenvAndBuildIntoStatic();
+    await staticFileHandler.watchDotenvAndBuildAllIntoStatic();
+    await staticFileHandler.watchTsconfigCompileTypeScriptIntoServer();
 
     const logServerRunning = () => {
       // eslint-disable-next-line no-console

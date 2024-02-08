@@ -112,14 +112,18 @@ export const watchTypeScript = (rootDir: string, outDir: string) => {
     reportWatchStatusChanged
   );
 
-  ts.createWatchProgram(host);
+  const program = ts.createWatchProgram(host);
+
+  return program;
 };
 
 export const compileTypeScript = (
   fileNames: string[],
   rootDir: string,
-  outDir: string
+  outDir: string,
+  watch: boolean
 ): void => {
+  const startTime = Date.now();
   const configPath = ts.findConfigFile(
     CWD,
     ts.sys.fileExists,
@@ -138,7 +142,9 @@ export const compileTypeScript = (
 
   if (compilerOptions.errors?.length) {
     compilerOptions.errors.forEach(reportDiagnostic);
-    return process.exit(1);
+    if (!watch) {
+      return process.exit(1);
+    }
   }
 
   const program = ts.createProgram(fileNames, {
@@ -162,7 +168,16 @@ export const compileTypeScript = (
     console.error(
       `Failed to compile typescript from "${rootDir}" with exit code "${exitCode}".`
     );
-    return process.exit(1);
+    if (!watch) {
+      return process.exit(1);
+    }
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(
+      `Built TypeScript files in ${((Date.now() - startTime) / 1000).toFixed(
+        2
+      )}s`
+    );
   }
 };
 
