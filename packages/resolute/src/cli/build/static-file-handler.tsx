@@ -697,7 +697,6 @@ export class StaticFileHandler {
           // eslint-disable-next-line no-console
           console.log(`${pathname} changed`);
 
-          await this.loadClientFilesAndDependenciesFromServer();
           await this.loadComponentRoutesAndLayoutsFromServer();
 
           const absolutePathname = path.resolve(this.serverPathname, pathname);
