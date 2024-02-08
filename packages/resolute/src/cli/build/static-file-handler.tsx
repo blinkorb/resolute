@@ -36,7 +36,7 @@ import {
   compileTypeScript,
   watchTypeScript,
 } from '../utils/compile.js';
-import { createDebounced } from '../utils/debounce.js';
+import { createDebounced, createDebouncedByKey } from '../utils/debounce.js';
 import { getAllDependencies, getVersionMap } from '../utils/deps.js';
 import {
   getDepth,
@@ -517,6 +517,26 @@ export class StaticFileHandler {
     });
   }
 
+  public generateFilesForRouteDebounced = createDebouncedByKey(
+    async (route: string, info: RouteInfo) => {
+      // eslint-disable-next-line no-console
+      console.log(`Rebuilding route "${route}"...`);
+      const startTime = Date.now();
+
+      await this.generateFilesForRoute(route, info);
+
+      // eslint-disable-next-line no-console
+      console.log(
+        `Rebuilt route "${route}" in ${(
+          (Date.now() - startTime) /
+          1000
+        ).toFixed(2)}s`
+      );
+    },
+    (route) => route,
+    100
+  );
+
   public async generateStaticFiles() {
     await Promise.all(
       Object.entries(this.routeMapping).map(async ([route, info]) =>
@@ -670,9 +690,35 @@ export class StaticFileHandler {
 
         if (pathname === 'resolute.settings.js') {
           // eslint-disable-next-line no-console
-          console.log('resolute.settings changed. Rebuilding static files...');
+          console.log(`${pathname} changed. Rebuilding static files...`);
 
           await this.rebuildAllStaticFilesDebounced();
+        } else if (MATCHES_MARKDOWN_EXTENSION.test(pathname)) {
+          // eslint-disable-next-line no-console
+          console.log(`${pathname} changed`);
+
+          await this.loadClientFilesAndDependenciesFromServer();
+          await this.loadComponentRoutesAndLayoutsFromServer();
+
+          const absolutePathname = path.resolve(this.serverPathname, pathname);
+          const route = pathnameToRoute(absolutePathname, this.serverPathname);
+
+          const routeInfo = this.routeMapping[route];
+
+          if (routeInfo) {
+            await this.generateFilesForRouteDebounced(route, routeInfo);
+          }
+        } else {
+          const startTime = Date.now();
+
+          await this.loadClientFilesAndDependenciesFromServer();
+          await this.loadComponentRoutesAndLayoutsFromServer();
+
+          console.log(
+            `Loaded dependencies in ${((Date.now() - startTime) / 1000).toFixed(
+              2
+            )}s`
+          );
         }
       })
       .on('unlink', async (pathname) => {
@@ -718,8 +764,8 @@ export class StaticFileHandler {
         'tsconfig.resolute.json changed. Rebuilding TypeScript files...'
       );
 
-      await this.restartWatchTypeScriptSourceFilesIntoServer();
       await this.compileTypeScriptSourceFilesIntoServer();
+      await this.restartWatchTypeScriptSourceFilesIntoServer();
     };
 
     dotenvWatcher
