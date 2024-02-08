@@ -248,6 +248,7 @@ export class StaticFileHandler {
           pathname,
           [
             'NODE_ENV',
+            'HOSTNAME',
             'PORT',
             'URL',
             'API_URL',
@@ -282,7 +283,7 @@ export class StaticFileHandler {
         const code = compileBabel(
           content,
           pathname,
-          ['NODE_ENV', 'PORT', 'URL', 'API_URL'],
+          ['NODE_ENV', 'HOSTNAME', 'PORT', 'URL', 'API_URL'],
           false,
           []
         );
